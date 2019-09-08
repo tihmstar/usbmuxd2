@@ -7,6 +7,7 @@
 //  Copyright © 2019 tihmstar. All rights reserved.
 //
 
+#ifdef HAVE_WIFI_SUPPORT
 #include "WIFIDeviceManager.hpp"
 #include <log.h>
 #include <libgeneral/macros.h>
@@ -45,7 +46,7 @@ WIFIDeviceManager::~WIFIDeviceManager(){
 		avahi_simple_poll_quit(_simple_poll);
 	}
 
-	stopLoop(); 
+	stopLoop();
 	//make sure _simple_poll is valid, while the event loop tries to use it
 
     if (_avahi_sb) {
@@ -56,7 +57,7 @@ WIFIDeviceManager::~WIFIDeviceManager(){
         avahi_client_free(_avahi_client);
     }
 
-	
+
 	if (_simple_poll) {
         avahi_simple_poll_free(_simple_poll);
     }
@@ -116,7 +117,7 @@ void avahi_resolve_callback(AvahiServiceResolver *r, AvahiIfIndex interface, Ava
 	char *t = NULL;
 	WIFIDevice *dev = nullptr;
 	char addr[AVAHI_ADDRESS_STR_MAX];
-	
+
 
     /* Called whenever a service has been resolved successfully or timed out */
     switch (event) {
@@ -131,7 +132,7 @@ void avahi_resolve_callback(AvahiServiceResolver *r, AvahiIfIndex interface, Ava
             std::string serviceName{name};
             std::string macAddr{serviceName.substr(0,serviceName.find("@"))};
             std::string uuid;
-            
+
             try{
                 uuid = sysconf_udid_for_macaddr(macAddr);
             }catch (tihmstar::exception &e){
@@ -153,7 +154,7 @@ void avahi_resolve_callback(AvahiServiceResolver *r, AvahiIfIndex interface, Ava
         }
         break;
     }
-    
+
 
 error:
 	avahi_service_resolver_free(r);
@@ -164,3 +165,5 @@ error:
 		dev->kill();
 	}
 }
+
+#endif //HAVE_WIFI_SUPPORT
