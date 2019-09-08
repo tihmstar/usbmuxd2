@@ -7,14 +7,15 @@
 //  Copyright © 2019 tihmstar. All rights reserved.
 //
 
-#ifdef HAVE_WIFI_SUPPORT
-#include "WIFIDeviceManager.hpp"
 #include <log.h>
 #include <libgeneral/macros.h>
-#include <avahi-common/error.h>
-#include <avahi-common/malloc.h>
+
+#ifdef HAVE_WIFI_SUPPORT
+#include "WIFIDeviceManager.hpp"
 #include <Devices/WIFIDevice.hpp>
 #include <sysconf/sysconf.hpp>
+#include <avahi-common/error.h>
+#include <avahi-common/malloc.h>
 
 
 #pragma mark avahi_callback definitions
