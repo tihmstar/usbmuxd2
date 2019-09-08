@@ -1,0 +1,459 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		8724CE2E2308863600495477 /* ClientManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8724CE2C2308863600495477 /* ClientManager.cpp */; };
+		873596AD2308412900226410 /* exception.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 873596AC2308412900226410 /* exception.cpp */; };
+		8740104A23093888004686AD /* Client.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8740104823093888004686AD /* Client.cpp */; };
+		8740104F23094578004686AD /* sysconf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8740104D23094578004686AD /* sysconf.cpp */; };
+		8740105223094585004686AD /* preflight.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8740105023094585004686AD /* preflight.cpp */; };
+		874010542309464F004686AD /* libplist++.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 874010532309464F004686AD /* libplist++.3.dylib */; };
+		874010562309465A004686AD /* libplist.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 874010552309465A004686AD /* libplist.3.dylib */; };
+		8756C265230831FB001F0753 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8756C264230831FB001F0753 /* main.cpp */; };
+		8756C26E230833B6001F0753 /* Manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8756C26C230833B6001F0753 /* Manager.cpp */; };
+		8756C272230833FB001F0753 /* USBDeviceManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8756C270230833FB001F0753 /* USBDeviceManager.cpp */; };
+		8756C27523083418001F0753 /* Device.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8756C27323083418001F0753 /* Device.cpp */; };
+		8756C27923083437001F0753 /* USBDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8756C27723083437001F0753 /* USBDevice.cpp */; };
+		8756C27C23083450001F0753 /* log.c in Sources */ = {isa = PBXBuildFile; fileRef = 8756C27B23083450001F0753 /* log.c */; };
+		8756C27F230834C2001F0753 /* Muxer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8756C27D230834C2001F0753 /* Muxer.cpp */; };
+		8759A36F2308362A00B5C38F /* DeviceManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8759A36D2308362A00B5C38F /* DeviceManager.cpp */; };
+		8759A37223083C9E00B5C38F /* libusb-1.0.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8759A37123083C9E00B5C38F /* libusb-1.0.0.dylib */; };
+		875E0A6823095B32001154A0 /* TCP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 875E0A6623095B32001154A0 /* TCP.cpp */; };
+		8760D33E2311859000FFA5BB /* libimobiledevice.6.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8760D33D2311859000FFA5BB /* libimobiledevice.6.dylib */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		8756C25F230831FB001F0753 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		8724CE2C2308863600495477 /* ClientManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ClientManager.cpp; sourceTree = "<group>"; };
+		8724CE2D2308863600495477 /* ClientManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ClientManager.hpp; sourceTree = "<group>"; };
+		873596AC2308412900226410 /* exception.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = exception.cpp; path = external/libgeneral/libgeneral/exception.cpp; sourceTree = SOURCE_ROOT; };
+		873596AE2308490A00226410 /* lck_container.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = lck_container.h; sourceTree = "<group>"; };
+		8740104823093888004686AD /* Client.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Client.cpp; sourceTree = "<group>"; };
+		8740104923093888004686AD /* Client.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Client.hpp; sourceTree = "<group>"; };
+		8740104B2309408B004686AD /* usbmuxd2-proto.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "usbmuxd2-proto.h"; sourceTree = "<group>"; };
+		8740104D23094578004686AD /* sysconf.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sysconf.cpp; sourceTree = "<group>"; };
+		8740104E23094578004686AD /* sysconf.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = sysconf.hpp; sourceTree = "<group>"; };
+		8740105023094585004686AD /* preflight.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = preflight.cpp; sourceTree = "<group>"; };
+		8740105123094585004686AD /* preflight.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = preflight.hpp; sourceTree = "<group>"; };
+		874010532309464F004686AD /* libplist++.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libplist++.3.dylib"; path = "../../../../usr/local/lib/libplist++.3.dylib"; sourceTree = "<group>"; };
+		874010552309465A004686AD /* libplist.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libplist.3.dylib; path = ../../../../usr/local/lib/libplist.3.dylib; sourceTree = "<group>"; };
+		8756C261230831FB001F0753 /* usbmuxd2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = usbmuxd2; sourceTree = BUILT_PRODUCTS_DIR; };
+		8756C264230831FB001F0753 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		8756C26C230833B6001F0753 /* Manager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Manager.cpp; sourceTree = "<group>"; };
+		8756C26D230833B6001F0753 /* Manager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Manager.hpp; sourceTree = "<group>"; };
+		8756C270230833FB001F0753 /* USBDeviceManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = USBDeviceManager.cpp; sourceTree = "<group>"; };
+		8756C271230833FB001F0753 /* USBDeviceManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = USBDeviceManager.hpp; sourceTree = "<group>"; };
+		8756C27323083418001F0753 /* Device.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Device.cpp; sourceTree = "<group>"; };
+		8756C27423083418001F0753 /* Device.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Device.hpp; sourceTree = "<group>"; };
+		8756C27723083437001F0753 /* USBDevice.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = USBDevice.cpp; sourceTree = "<group>"; };
+		8756C27823083437001F0753 /* USBDevice.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = USBDevice.hpp; sourceTree = "<group>"; };
+		8756C27A23083450001F0753 /* log.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = log.h; sourceTree = "<group>"; };
+		8756C27B23083450001F0753 /* log.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = log.c; sourceTree = "<group>"; };
+		8756C27D230834C2001F0753 /* Muxer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Muxer.cpp; sourceTree = "<group>"; };
+		8756C27E230834C2001F0753 /* Muxer.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Muxer.hpp; sourceTree = "<group>"; };
+		8759A36D2308362A00B5C38F /* DeviceManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DeviceManager.cpp; sourceTree = "<group>"; };
+		8759A36E2308362A00B5C38F /* DeviceManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DeviceManager.hpp; sourceTree = "<group>"; };
+		8759A37123083C9E00B5C38F /* libusb-1.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libusb-1.0.0.dylib"; path = "../../../../usr/local/Cellar/libusb/1.0.22/lib/libusb-1.0.0.dylib"; sourceTree = "<group>"; };
+		875E0A6623095B32001154A0 /* TCP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TCP.cpp; sourceTree = "<group>"; };
+		875E0A6723095B32001154A0 /* TCP.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TCP.hpp; sourceTree = "<group>"; };
+		8760D33D2311859000FFA5BB /* libimobiledevice.6.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libimobiledevice.6.dylib; path = ../../../../usr/local/lib/libimobiledevice.6.dylib; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8756C25E230831FB001F0753 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8760D33E2311859000FFA5BB /* libimobiledevice.6.dylib in Frameworks */,
+				874010562309465A004686AD /* libplist.3.dylib in Frameworks */,
+				874010542309464F004686AD /* libplist++.3.dylib in Frameworks */,
+				8759A37223083C9E00B5C38F /* libusb-1.0.0.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		873596AB2308411800226410 /* external */ = {
+			isa = PBXGroup;
+			children = (
+				873596AC2308412900226410 /* exception.cpp */,
+			);
+			name = external;
+			sourceTree = "<group>";
+		};
+		8740104C23094561004686AD /* sysconf */ = {
+			isa = PBXGroup;
+			children = (
+				8740104E23094578004686AD /* sysconf.hpp */,
+				8740104D23094578004686AD /* sysconf.cpp */,
+				8740105123094585004686AD /* preflight.hpp */,
+				8740105023094585004686AD /* preflight.cpp */,
+			);
+			path = sysconf;
+			sourceTree = "<group>";
+		};
+		8756C258230831FB001F0753 = {
+			isa = PBXGroup;
+			children = (
+				8756C263230831FB001F0753 /* usbmuxd2 */,
+				8756C262230831FB001F0753 /* Products */,
+				8759A37023083C9D00B5C38F /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		8756C262230831FB001F0753 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8756C261230831FB001F0753 /* usbmuxd2 */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		8756C263230831FB001F0753 /* usbmuxd2 */ = {
+			isa = PBXGroup;
+			children = (
+				873596AB2308411800226410 /* external */,
+				8740104B2309408B004686AD /* usbmuxd2-proto.h */,
+				8756C27A23083450001F0753 /* log.h */,
+				8756C27B23083450001F0753 /* log.c */,
+				873596AE2308490A00226410 /* lck_container.h */,
+				8756C27423083418001F0753 /* Device.hpp */,
+				8756C27323083418001F0753 /* Device.cpp */,
+				8756C27623083428001F0753 /* Devices */,
+				8756C26B230833A9001F0753 /* Manager */,
+				8740104923093888004686AD /* Client.hpp */,
+				8740104823093888004686AD /* Client.cpp */,
+				8740104C23094561004686AD /* sysconf */,
+				875E0A6723095B32001154A0 /* TCP.hpp */,
+				875E0A6623095B32001154A0 /* TCP.cpp */,
+				8756C27E230834C2001F0753 /* Muxer.hpp */,
+				8756C27D230834C2001F0753 /* Muxer.cpp */,
+				8756C264230831FB001F0753 /* main.cpp */,
+			);
+			path = usbmuxd2;
+			sourceTree = "<group>";
+		};
+		8756C26B230833A9001F0753 /* Manager */ = {
+			isa = PBXGroup;
+			children = (
+				8756C26D230833B6001F0753 /* Manager.hpp */,
+				8756C26C230833B6001F0753 /* Manager.cpp */,
+				8724CE2D2308863600495477 /* ClientManager.hpp */,
+				8724CE2C2308863600495477 /* ClientManager.cpp */,
+				8756C26F230833EF001F0753 /* DeviceManager */,
+			);
+			path = Manager;
+			sourceTree = "<group>";
+		};
+		8756C26F230833EF001F0753 /* DeviceManager */ = {
+			isa = PBXGroup;
+			children = (
+				8759A36E2308362A00B5C38F /* DeviceManager.hpp */,
+				8759A36D2308362A00B5C38F /* DeviceManager.cpp */,
+				8756C271230833FB001F0753 /* USBDeviceManager.hpp */,
+				8756C270230833FB001F0753 /* USBDeviceManager.cpp */,
+			);
+			path = DeviceManager;
+			sourceTree = "<group>";
+		};
+		8756C27623083428001F0753 /* Devices */ = {
+			isa = PBXGroup;
+			children = (
+				8756C27823083437001F0753 /* USBDevice.hpp */,
+				8756C27723083437001F0753 /* USBDevice.cpp */,
+			);
+			path = Devices;
+			sourceTree = "<group>";
+		};
+		8759A37023083C9D00B5C38F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				8760D33D2311859000FFA5BB /* libimobiledevice.6.dylib */,
+				874010552309465A004686AD /* libplist.3.dylib */,
+				874010532309464F004686AD /* libplist++.3.dylib */,
+				8759A37123083C9E00B5C38F /* libusb-1.0.0.dylib */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		8756C260230831FB001F0753 /* usbmuxd2 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8756C268230831FB001F0753 /* Build configuration list for PBXNativeTarget "usbmuxd2" */;
+			buildPhases = (
+				8756C25D230831FB001F0753 /* Sources */,
+				8756C25E230831FB001F0753 /* Frameworks */,
+				8756C25F230831FB001F0753 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = usbmuxd2;
+			productName = usbmuxd2;
+			productReference = 8756C261230831FB001F0753 /* usbmuxd2 */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8756C259230831FB001F0753 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1010;
+				ORGANIZATIONNAME = tihmstar;
+				TargetAttributes = {
+					8756C260230831FB001F0753 = {
+						CreatedOnToolsVersion = 10.1;
+					};
+				};
+			};
+			buildConfigurationList = 8756C25C230831FB001F0753 /* Build configuration list for PBXProject "usbmuxd2" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 8756C258230831FB001F0753;
+			productRefGroup = 8756C262230831FB001F0753 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				8756C260230831FB001F0753 /* usbmuxd2 */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8756C25D230831FB001F0753 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8724CE2E2308863600495477 /* ClientManager.cpp in Sources */,
+				8740104F23094578004686AD /* sysconf.cpp in Sources */,
+				8756C27C23083450001F0753 /* log.c in Sources */,
+				8756C265230831FB001F0753 /* main.cpp in Sources */,
+				8756C272230833FB001F0753 /* USBDeviceManager.cpp in Sources */,
+				875E0A6823095B32001154A0 /* TCP.cpp in Sources */,
+				8759A36F2308362A00B5C38F /* DeviceManager.cpp in Sources */,
+				8756C27923083437001F0753 /* USBDevice.cpp in Sources */,
+				8756C26E230833B6001F0753 /* Manager.cpp in Sources */,
+				8756C27F230834C2001F0753 /* Muxer.cpp in Sources */,
+				8740105223094585004686AD /* preflight.cpp in Sources */,
+				8740104A23093888004686AD /* Client.cpp in Sources */,
+				8756C27523083418001F0753 /* Device.cpp in Sources */,
+				873596AD2308412900226410 /* exception.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		8756C266230831FB001F0753 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		8756C267230831FB001F0753 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		8756C269230831FB001F0753 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LIBRARY = "libc++";
+				CODE_SIGN_STYLE = Automatic;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+					CUSTOM_LOGGING,
+					"HAVE_LIBIMOBILEDEVICE=1",
+				);
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/external/libgeneral/include",
+					"$(SRCROOT)/usbmuxd2",
+					/usr/local/Cellar/libusb/1.0.22/include/,
+					/usr/local/include,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/usr/local/Cellar/libusb/1.0.22/lib,
+					/usr/local/lib,
+				);
+				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		8756C26A230831FB001F0753 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_CXX_LIBRARY = "libc++";
+				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/external/libgeneral/include",
+					"$(SRCROOT)/usbmuxd2",
+					/usr/local/Cellar/libusb/1.0.22/include/,
+					/usr/local/include,
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/usr/local/Cellar/libusb/1.0.22/lib,
+					/usr/local/lib,
+				);
+				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		8756C25C230831FB001F0753 /* Build configuration list for PBXProject "usbmuxd2" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8756C266230831FB001F0753 /* Debug */,
+				8756C267230831FB001F0753 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8756C268230831FB001F0753 /* Build configuration list for PBXNativeTarget "usbmuxd2" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8756C269230831FB001F0753 /* Debug */,
+				8756C26A230831FB001F0753 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 8756C259230831FB001F0753 /* Project object */;
+}
