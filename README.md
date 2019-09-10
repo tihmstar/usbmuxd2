@@ -17,6 +17,7 @@ The daemon also manages pairing records with iOS devices and the host in /var/li
 Development Package of:
 * libusb (USB)
 * libplist and libplist++
+* libusbmuxd
 * libimobiledevice
 * avahi-client (WIFI)
 
