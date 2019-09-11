@@ -13,11 +13,14 @@
 #include <memory>
 #include <sched.h>
 #include <atomic>
+#include <mutex>
 
 template <class _container>
 class lck_contrainer{
     static constexpr const uint32_t maxMembers = 0x10000;
     std::atomic<uint32_t> _members;
+    std::mutex _enterLock;
+    std::mutex _leaveLock;
 public:
     _container _elems;
 
@@ -43,7 +46,7 @@ lck_contrainer<_container>::lck_contrainer()
 template <class _container>
 lck_contrainer<_container>::~lck_contrainer(){
     while (_members) {
-        sched_yield();
+        _enterLock.lock();
     }
 }
 
@@ -54,7 +57,7 @@ void lck_contrainer<_container>::addMember(){
         if (_members.fetch_add(1) >= lck_contrainer::maxMembers){
             _members.fetch_sub(1);
             while (_members>=lck_contrainer::maxMembers)
-                sched_yield();
+                _enterLock.lock();
         }else{
             break;
         }
@@ -64,6 +67,8 @@ void lck_contrainer<_container>::addMember(){
 template <class _container>
 void lck_contrainer<_container>::delMember(){
     _members.fetch_sub(1);
+    _enterLock.unlock();
+    _leaveLock.unlock();
 }
 
 template <class _container>
@@ -72,11 +77,10 @@ void lck_contrainer<_container>::lockMember(){
         if (_members.fetch_add(lck_contrainer::maxMembers) >= lck_contrainer::maxMembers){
             _members.fetch_sub(lck_contrainer::maxMembers);
             while (_members>=lck_contrainer::maxMembers)
-                sched_yield();
+                _enterLock.unlock();
         }else{
-            while (_members > lck_contrainer::maxMembers) {
-                sched_yield(); //wait until all members are gone
-            }
+            while (_members > lck_contrainer::maxMembers)
+                _leaveLock.unlock(); //wait until all members are gone
             break;
         }
     }
@@ -86,6 +90,8 @@ void lck_contrainer<_container>::lockMember(){
 template <class _container>
 void lck_contrainer<_container>::unlockMember(){
     _members.fetch_sub(lck_contrainer::maxMembers);
+    _enterLock.unlock();
+    _leaveLock.unlock();
 }
 
 
