@@ -25,10 +25,10 @@ esac
 
 
 CFLAGS+=" -D CUSTOM_LOGGING=1"
-CXXFLAGS+=" -D CUSTOM_LOGGING=1 -std=c++17 -lstdc++fs"
+CXXFLAGS+=" -D CUSTOM_LOGGING=1 -std=c++17"
 CXXFLAGS+=" -D VERSION_COMMIT_COUNT=\\\"$(git rev-list --count HEAD | tr -d '\n')\\\""
 CXXFLAGS+=" -D VERSION_COMMIT_SHA=\\\"$(git rev-parse HEAD | tr -d '\n')\\\""
-
+LDFLAGS+=" -lstdc++fs"
 
 PKG_CHECK_MODULES(libusb, libusb-1.0 >= 1.0.9)
 PKG_CHECK_MODULES(libplist, libplist >= 2.0.0)
@@ -37,7 +37,7 @@ PKG_CHECK_MODULES(libimobiledevice, libimobiledevice-1.0 >= 1.2.1, have_limd=yes
 PKG_CHECK_MODULES(avahi, avahi-client >= 0.7, have_avahi=yes, have_avahi=no)
 AC_CHECK_LIB(pthread, [pthread_create, pthread_mutex_lock], [AC_SUBST(libpthread_LIBS,[-lpthread])], [AC_MSG_ERROR([libpthread is required to build usbmuxd2])])
 
-AC_ARG_WITH([preflight],
+AC_ARG_WITH([libimobiledevice],
             [AS_HELP_STRING([--without-libimobiledevice],
             [do not build with libimobiledevice @<:@default=yes@:>@])],
             [with_limd=no],
@@ -48,6 +48,19 @@ AC_ARG_WITH([wifi],
             [do not build with wifi support @<:@default=yes@:>@])],
             [with_wifi=no],
             [with_wifi=yes])
+
+AC_ARG_ENABLE([debug],
+            [AS_HELP_STRING([--enable-debug],
+            [enable debug build(default is no)])],
+            [debug_build=true],
+            [debug_build=false])
+
+
+if test "$debug_build" = true; then
+  echo "*** Note: debug build requested ***"
+  CFLAGS+=" -g -D DEBUG=1"
+  CXXFLAGS+=" -g -D DEBUG=1"
+fi            
 
 
 if test "x$with_limd" == "xyes"; then
@@ -99,3 +112,14 @@ LT_INIT
 AC_CONFIG_FILES([Makefile
                  usbmuxd2/Makefile])
 AC_OUTPUT
+
+echo "
+Configuration for $PACKAGE $VERSION:
+-------------------------------------------
+
+  Debug build .............: $debug_build
+  preflight support .......: $with_limd
+  ẂIFI support ............: $with_wifi
+  
+  Now type 'make' to build $PACKAGE version: $VERSION,
+"
