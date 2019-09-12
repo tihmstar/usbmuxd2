@@ -361,6 +361,12 @@ int main(int argc, const char * argv[]) {
 
     //starting    
     mux = new Muxer();
+
+    if (!(mux->_doPreflight = gConfig->doPreflight)){
+        info("Preflight disabled by config!");
+    }
+
+
     try{
         mux->spawnClientManager();
         info("Inited ClientManager");

@@ -21,6 +21,7 @@ class lck_contrainer{
     std::atomic<uint32_t> _members;
     std::mutex _enterLock;
     std::mutex _leaveLock;
+    std::mutex _notifyLock;
 public:
     _container _elems;
 
@@ -34,6 +35,9 @@ public:
     //write/modify access
     inline void lockMember();
     inline void unlockMember();
+
+    //block until someone removed members
+    inline void notifyBlock();
 };
 
 template <class _container>
@@ -69,6 +73,7 @@ void lck_contrainer<_container>::delMember(){
     _members.fetch_sub(1);
     _enterLock.unlock();
     _leaveLock.unlock();
+    _notifyLock.unlock();
 }
 
 template <class _container>
@@ -92,6 +97,12 @@ void lck_contrainer<_container>::unlockMember(){
     _members.fetch_sub(lck_contrainer::maxMembers);
     _enterLock.unlock();
     _leaveLock.unlock();
+    _notifyLock.unlock();
+}
+
+template <class _container>
+void lck_contrainer<_container>::notifyBlock(){
+    _notifyLock.lock();
 }
 
 

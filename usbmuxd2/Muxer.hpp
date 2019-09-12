@@ -30,10 +30,14 @@ class Muxer {
     lck_contrainer<std::vector<Client *>> _clients;
     int _newid;
     bool _isDying;
+    std::atomic<int> _refcnt;
+    std::mutex _reflock;
 
     Device *get_device_by_id(int id);
     
 public:
+    bool _doPreflight;
+
     Muxer(const Muxer&) = delete; //delete copy constructor
     Muxer(Muxer &&o) = delete; //move constructor
     
