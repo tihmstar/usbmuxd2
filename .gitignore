@@ -40,3 +40,5 @@ Makefile
 
 build-usbmuxd2-*
 usbmuxd2/usbmuxd
+systemd/usbmuxd.service
+udev/39-usbmuxd.rules
