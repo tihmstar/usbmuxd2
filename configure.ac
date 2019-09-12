@@ -90,6 +90,45 @@ else
   fi
 fi
 
+AC_ARG_WITH([udevrulesdir],
+            AS_HELP_STRING([--with-udevrulesdir=DIR],
+            [Directory for udev rules]),
+            [],
+            [with_udevrulesdir=auto])
+if test "x$with_udevrulesdir" = "xauto"; then
+  udevdir=$($PKG_CONFIG --variable=udevdir udev)
+  if test "x$udevdir" != "x"; then
+    with_udevrulesdir=$udevdir"/rules.d"
+  else
+    with_udevrulesdir=$prefix/lib/udev/rules.d
+  fi
+fi
+
+AC_ARG_WITH([systemd],
+            [AS_HELP_STRING([--without-systemd],
+            [do not build with systemd support @<:@default=yes@:>@])],
+            [],
+            [with_systemd=yes])
+
+AC_ARG_WITH([systemdsystemunitdir],
+            [AS_HELP_STRING([--with-systemdsystemunitdir=DIR],
+            [directory for systemd service files])],
+            [with_systemdsystemunitdir=$withval],
+            [with_systemdsystemunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)])
+
+if test "x$with_systemdsystemunitdir" != xno; then
+  AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])
+fi
+AM_CONDITIONAL(WANT_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_systemdsystemunitdir" != xno -a "x$with_systemd" = "xyes" ])
+
+if test "x$with_systemd" = xyes; then
+  udev_activation_rule="ENV{SYSTEMD_WANTS}=\"usbmuxd.service\""
+else
+  udev_activation_rule="RUN+=\"@sbindir@/usbmuxd --user usbmux --udev\""
+fi
+AC_SUBST(udev_activation_rule)
+
+
 # Checks for libraries.
 
 # Checks for header files.
@@ -109,17 +148,58 @@ AC_CHECK_FUNCS([clock_gettime gettimeofday memset socket strdup strerror])
 
 LT_INIT
 
+# Check for operating system
+UDEV_SUB=
+SYSTEMD_SUB=
+case ${host_os} in
+  darwin*)
+    # No support for launchd
+    activation_method="manual"
+    ;;
+  *)
+    UDEV_SUB=udev
+    AC_SUBST([udevrulesdir], [$with_udevrulesdir])
+    AC_DEFINE(HAVE_UDEV, 1, [Define to enable udev support])
+    activation_method="systemd"
+    if test "x$with_systemd" != "xyes"; then
+      echo "*** Note: support for systemd activation has been disabled, using udev activation instead ***"
+      activation_method="udev"
+    else
+      AC_DEFINE(WANT_SYSTEMD, 1, [Define to enable systemd support])
+      SYSTEMD_SUB=systemd
+    fi
+    ;;
+esac
+
+AC_SUBST([UDEV_SUB])
+AC_SUBST([SYSTEMD_SUB])
+
 AC_CONFIG_FILES([Makefile
+                 udev/Makefile
+                 systemd/Makefile
                  usbmuxd2/Makefile])
 AC_OUTPUT
 
 echo "
-Configuration for $PACKAGE $VERSION:
+Configuration for $PACKAGE-$VERSION:
 -------------------------------------------
 
+  install prefix ..........: $prefix
   Debug build .............: $debug_build
   preflight support .......: $with_limd
   ẂIFI support ............: $with_wifi
-  
-  Now type 'make' to build $PACKAGE version: $VERSION,
+  activation method .......: $activation_method"
+
+if test "x$activation_method" = "xsystemd"; then
+  echo "  systemd unit directory ..: ${systemdsystemunitdir}"
+fi
+
+if test -n "$udevrulesdir"; then
+  echo "  udev rules directory ....: ${udevrulesdir}"
+fi
+
+echo "  compiler ................: ${CC}
+
+  Now type 'make' to build $PACKAGE-$VERSION,
+  and then 'make install' for installation.
 "

@@ -164,7 +164,7 @@ static void usage(){
     printf("  -U, --user USER\tChange to this user after startup (needs USB privileges).\n");
     printf("  -z, --enable-exit\tEnable \"--exit\" request from other instances and exit\n");
     printf("                   \tautomatically if no device is attached.\n");
-#ifdef HAVE_SYSTEMD
+#ifdef WANT_SYSTEMD
     printf("  -s, --systemd\t\tRun in systemd operation mode (implies -z and -f).\n");
 #endif
     printf("  -x, --exit\t\tNotify a running instance to exit if there are no devices\n");
@@ -186,7 +186,7 @@ static void parse_opts(int argc, const char **argv){
         {"version", no_argument, NULL, 'V'},
         {"daemonize", no_argument, NULL, 'd'},
         {"enable-exit", no_argument, NULL, 'z'},
-#ifdef HAVE_SYSTEMD
+#ifdef WANT_SYSTEMD
         {"systemd", no_argument, NULL, 's'},
 #endif
         {"exit", no_argument, NULL, 'x'},
@@ -199,7 +199,7 @@ static void parse_opts(int argc, const char **argv){
     };
     int c;
 
-#ifdef HAVE_SYSTEMD
+#ifdef WANT_SYSTEMD
     const char* opts_spec = "hvVdzsxXl:U:";
 #else
     const char* opts_spec = "hvVdzxXl:U:";
@@ -227,7 +227,7 @@ static void parse_opts(int argc, const char **argv){
         case 'U':
             gConfig->dropUser = optarg;
             break;
-#ifdef HAVE_SYSTEMD
+#ifdef WANT_SYSTEMD
         case 's':
             gConfig->enableExit = true;
             gConfig->daemonize = false;
