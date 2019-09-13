@@ -295,7 +295,7 @@ int main(int argc, const char * argv[]) {
     parse_opts(argc,argv);
 
     if (gConfig->daemonize && !gConfig->useLogfile) {
-        verbose += LL_WARNING;
+        verbose += LL_INFO;
         debug("enabling syslog");
         log_enable_syslog();
     } else {

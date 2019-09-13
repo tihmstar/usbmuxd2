@@ -67,7 +67,7 @@ void WIFIDevice::startLoop(){
     assure(_hbrsp = plist_new_dict());
     plist_dict_set_item(_hbrsp, "Command", polo);polo = NULL;
 
-    assure(!idevice_new(&_idev,_serial));
+    assure(!idevice_new_with_options(&_idev,_serial, IDEVICE_LOOKUP_NETWORK));
 
     retassure((hret = heartbeat_client_start_service(_idev, &_hbclient, "usbmuxd2")) == HEARTBEAT_E_SUCCESS,"Failed to start heartbeat service with error=%d",hret);
 
