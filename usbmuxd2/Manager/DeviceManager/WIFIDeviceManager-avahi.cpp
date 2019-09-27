@@ -10,8 +10,8 @@
 #include <log.h>
 #include <libgeneral/macros.h>
 
-#ifdef HAVE_WIFI_SUPPORT
-#include "WIFIDeviceManager.hpp"
+#ifdef HAVE_WIFI_AVAHI
+#include "WIFIDeviceManager-avahi.hpp"
 #include <Devices/WIFIDevice.hpp>
 #include <sysconf/sysconf.hpp>
 #include <avahi-common/error.h>
@@ -26,7 +26,7 @@ void avahi_resolve_callback(AvahiServiceResolver *r, AvahiIfIndex interface, Ava
         AvahiResolverEvent event, const char *name, const char *type, const char *domain, const char *host_name,
         const AvahiAddress *address, uint16_t port, AvahiStringList *txt, AvahiLookupResultFlags flags, void* userdata) noexcept;
 
-#pragma mark USBDeviceManager
+#pragma mark WIFIDeviceManager
 
 WIFIDeviceManager::WIFIDeviceManager(Muxer *mux): DeviceManager(mux){
     int err = 0;
@@ -43,30 +43,30 @@ WIFIDeviceManager::WIFIDeviceManager(Muxer *mux): DeviceManager(mux){
 }
 
 WIFIDeviceManager::~WIFIDeviceManager(){
-	if (_simple_poll){
-		avahi_simple_poll_quit(_simple_poll);
-	}
+if (_simple_poll){
+	avahi_simple_poll_quit(_simple_poll);
+}
 
-	stopLoop();
-	//make sure _simple_poll is valid, while the event loop tries to use it
+stopLoop();
+  //make sure _simple_poll is valid, while the event loop tries to use it
 
-    if (_avahi_sb) {
-        avahi_service_browser_free(_avahi_sb);
-    }
+  if (_avahi_sb) {
+    avahi_service_browser_free(_avahi_sb);
+  }
 
-    if (_avahi_client) {
-        avahi_client_free(_avahi_client);
-    }
+  if (_avahi_client) {
+    avahi_client_free(_avahi_client);
+  }
 
 
-	if (_simple_poll) {
-        avahi_simple_poll_free(_simple_poll);
-    }
+  if (_simple_poll) {
+    avahi_simple_poll_free(_simple_poll);
+  }
 }
 
 void WIFIDeviceManager::loopEvent(){
-    assure(!avahi_simple_poll_loop(_simple_poll)); //it's fine if this is blocking
-	debug("WIFIDeviceManager avahi main loop finished");
+  assure(!avahi_simple_poll_loop(_simple_poll)); //it's fine if this is blocking
+  debug("WIFIDeviceManager avahi main loop finished");
 }
 
 #pragma mark avahi_callback implementations

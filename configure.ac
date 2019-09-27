@@ -58,6 +58,7 @@ if test "x$with_limd" == "xyes"; then
 
     if test "x$with_wifi" == "xyes"; then
       if test "x$have_avahi" = "xyes"; then
+        AC_DEFINE(HAVE_WIFI_AVAHI, 1, [Define if you have avahi])
         AC_DEFINE(HAVE_WIFI_SUPPORT, 1, [Define if you have wifi support])
         AC_SUBST(avahi_CFLAGS)
         AC_SUBST(avahi_LIBS)
@@ -80,7 +81,7 @@ fi
 # Checks for libraries.
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stdint.h stdlib.h string.h sys/socket.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stdint.h stdlib.h string.h sys/socket.h sys/time.h unistd.h filesystem])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL

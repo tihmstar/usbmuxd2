@@ -23,7 +23,11 @@
 #include <arpa/inet.h>
 
 #ifdef HAVE_WIFI_SUPPORT
-#include <Manager/DeviceManager/WIFIDeviceManager.hpp>
+#   ifdef HAVE_WIFI_AVAHI
+#       include <Manager/DeviceManager/WIFIDeviceManager-avahi.hpp>
+#   elif HAVE_WIFI_MDNS
+#       include <Manager/DeviceManager/WIFIDeviceManager-mDNS.hpp>
+#   endif //HAVE_AVAHI
 #endif
 
 #define MAXID (INT_MAX/2)

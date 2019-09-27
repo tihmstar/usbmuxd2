@@ -18,9 +18,11 @@
 #include <string.h>
 #include <map>
 
-#ifdef HAVE_WIFI_SUPPORT
+#ifdef HAVE_FILESYSTEM
 #include <filesystem>
-#endif
+#else
+#include <dirent.h>
+#endif //HAVE_FILESYSTEM
 
 #define CONFIG_DIR  "lockdown"
 #define CONFIG_FILE "SystemConfiguration"
@@ -34,6 +36,49 @@
 #else
 #   define BASE_CONFIG_DIR "/var/lib"
 #endif
+
+
+#ifndef HAVE_FILESYSTEM
+//really crappy implementation in case <filesystem> isn't available :o
+class myfile{
+    std::string _path;
+public:
+    myfile(std::string p): _path(p){}
+    std::string path(){return _path;}
+};
+
+class diriter{
+public:
+    std::vector<myfile> _file;
+    auto begin(){return _file.begin();}
+    auto end(){return _file.end();}
+};
+
+namespace std {
+    namespace filesystem{
+        diriter directory_iterator(std::string);
+    }
+}
+
+diriter std::filesystem::directory_iterator(std::string dirpath){
+    DIR *dir = NULL;
+    struct dirent *ent = NULL;
+    diriter ret;
+    
+    assure(dir = opendir(dirpath.c_str()));
+    
+    while ((ent = readdir (dir)) != NULL) {
+        if (ent->d_type != DT_REG)
+            continue;
+        ret._file.push_back({dirpath + "/" + ent->d_name});
+    }
+    
+    if (dir) closedir(dir);
+    return ret;
+}
+#endif
+
+
 
 static std::map<std::string,std::string> gKnownMacAddrs;
 

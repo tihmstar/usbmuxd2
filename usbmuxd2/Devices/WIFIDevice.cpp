@@ -9,11 +9,13 @@
 #include <Devices/WIFIDevice.hpp>
 #include <SockConn.hpp>
 #include <assert.h>
+#include <log.h>
 #include <libgeneral/macros.h>
 #include <SockConn.hpp>
 #include <string.h>
 #include <Muxer.hpp>
 #include <plist/plist.h>
+#include <sysconf/sysconf.hpp>
 
 WIFIDevice::WIFIDevice(std::string uuid, std::string ipaddr, std::string serviceName, Muxer *mux) 
 : Device(mux,Device::MUXCONN_WIFI), _ipaddr(ipaddr), _serviceName(serviceName), _hbclient(NULL), _hbeat(NULL), _hbrsp(NULL),

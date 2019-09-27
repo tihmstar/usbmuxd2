@@ -25,8 +25,6 @@ class WIFIDevice : public Device, Manager {
 	plist_t _hbrsp;
 	idevice_t _idev;
 
-
-
     virtual ~WIFIDevice() override;
     virtual void loopEvent() override;
     virtual void afterLoop() noexcept override;
