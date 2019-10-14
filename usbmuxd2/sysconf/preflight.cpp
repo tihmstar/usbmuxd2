@@ -131,7 +131,7 @@ void preflight_device(const char *serial, int id){
     
     info("preflighting device %s",serial);
 
-    retassure(!(iret = idevice_new(&dev,serial)), "failed to create device with iret=%d",iret);
+    retassure(!(iret = idevice_new_with_options(&dev,serial,IDEVICE_LOOKUP_USBMUX)), "failed to create device with iret=%d",iret);
     
     retassure(!(lret = lockdownd_client_new(dev, &lockdown, "usbmuxd2")),"%s: ERROR: Could not connect to lockdownd on device %s, lockdown error %d", __func__, serial, lret);
     

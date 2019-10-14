@@ -54,7 +54,7 @@ make
 
 If debug symbols and extra logging is desired, build with
 ```bash
-./autogen.sh CFLAGS="-g -D DEBUG" CXXFLAGS="-g -D DEBUG"
+./autogen.sh --enable-debug
 make
 ```
 

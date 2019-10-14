@@ -8,7 +8,7 @@ sbin_PROGRAMS = usbmuxd
 usbmuxd_CFLAGS = $(AM_CFLAGS)
 usbmuxd_CXXFLAGS = $(AM_CXXFLAGS)
 usbmuxd_LDFLAGS = $(AM_LDFLAGS)
-usbmuxd_SOURCES = 	$(top_srcdir)/external/libgeneral/libgeneral/exception.cpp \
+usbmuxd_SOURCES = 	exception.cpp \
 			log.c \
 			Client.cpp \
 			Muxer.cpp \

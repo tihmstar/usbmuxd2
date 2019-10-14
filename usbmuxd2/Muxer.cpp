@@ -33,7 +33,8 @@
 #define MAXID (INT_MAX/2)
 
 Muxer::Muxer()
-    : _climgr(NULL), _usbdevmgr(NULL),_wifidevmgr(NULL), _newid(1), _isDying(false)
+    : _climgr(NULL), _usbdevmgr(NULL),_wifidevmgr(NULL), _newid(1), _isDying(false), _doPreflight(true),
+    _refcnt(0)
 {
     //
 }
@@ -66,6 +67,10 @@ Muxer::~Muxer(){
         if (dev) {
             delete_device(dev);
         }
+    }
+
+    while (_refcnt > 0){
+        _reflock.lock();
     }
     
     if (_climgr) {
@@ -182,12 +187,25 @@ void Muxer::add_device(Device *dev) noexcept{
         _devices.delMember();
         return;
     }
-
-    notify_device_add(dev);
     
+#ifdef HAVE_WIFI_SUPPORT
+    if (dev->_conntype == Device::MUXCONN_WIFI){
+        WIFIDevice *wifidev = (WIFIDevice*)dev;
+        try{
+            wifidev->startLoop();
+        }catch (tihmstar::exception &e){
+            error("Failed to start WIFIDevice %s with error=%d (%s)",wifidev->_serial,e.code(),e.what());
+            _devices.delMember();
+            delete_device(dev);
+            return;
+        }
+    }
+#endif //HAVE_WIFI_SUPPORT
+
+
 #warning TODO make preflighting a configurable option!
 #ifdef HAVE_LIBIMOBILEDEVICE
-    if (dev->_conntype == Device::MUXCONN_USB){
+    if (dev->_conntype == Device::MUXCONN_USB && _doPreflight){
         char *serial = strdup(dev->_serial);
         std::thread b([](char *serial, int devID){
             try {
@@ -199,22 +217,9 @@ void Muxer::add_device(Device *dev) noexcept{
         },serial,dev->_id);
         b.detach();
     }
-#ifdef HAVE_WIFI_SUPPORT
-    else if (dev->_conntype == Device::MUXCONN_WIFI){
-        WIFIDevice *wifidev = (WIFIDevice*)dev;
-        try{
-            wifidev->startLoop();
-        }catch (tihmstar::exception &e){
-            error("Failed to start WIFIDevice %s with error=%d (%s)",wifidev->_serial,e.code(),e.what());
-            _devices.delMember();
-            delete_device(wifidev);
-            return;
-        }
-    }
-#endif //HAVE_WIFI_SUPPORT
-    
 #endif //HAVE_LIBIMOBILEDEVICE
     _devices.delMember();
+    notify_device_add(dev);
 }
 
 void Muxer::delete_device(Device *dev) noexcept{
@@ -254,26 +259,25 @@ Device *Muxer::get_device_by_id(int id){
 }
 
 void Muxer::delete_device_async(uint8_t bus, uint8_t address) noexcept{
-    std::mutex waiter;
-    waiter.lock();
-    std::thread async([this,bus,address,&waiter]{
+    ++_refcnt;_reflock.unlock(); //async thread has a ref to this
+    std::thread async([this,bus,address]{
         _devices.addMember();
-        waiter.unlock();
         for (auto dev : _devices._elems){
             if (dev->_conntype == Device::MUXCONN_USB) {
                 USBDevice *usbdev = (USBDevice*)dev;
                 if (usbdev->_address == address && usbdev->_bus == bus) {
                     _devices.delMember();
                     delete_device(dev);
+                    --_refcnt;_reflock.unlock();
                     return;
                 }
             }
         }
         _devices.delMember();
         error("We are not managing a device on bus 0x%02x, address 0x%02x",bus,address);
+        --_refcnt;_reflock.unlock();
     });
     async.detach();
-    waiter.lock(); //wait until other thread unlocked once
 }
 
 bool Muxer::have_usb_device(uint8_t bus, uint8_t address) noexcept{
@@ -383,8 +387,17 @@ void Muxer::send_listenerList(Client *client, uint32_t tag){
 void Muxer::notify_device_add(Device *dev) noexcept{
     debug("notify_device_add(%p)",dev);
     
+    _devices.addMember();
+    if (std::find(_devices._elems.begin(), _devices._elems.end(), dev) == _devices._elems.end()) {
+        error("Device disappeared before it could be used!");
+        _devices.delMember();
+        return;
+    }
+
     PList::Dictionary rsp = getDevicePlist(dev);
     
+    _devices.delMember();
+
     _clients.addMember();
     for (Client *c : _clients._elems){
         if (c->_isListening) {

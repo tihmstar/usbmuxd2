@@ -52,8 +52,11 @@ USBDevice::~USBDevice(){
 
     
     // Busy-wait until all xfers are closed
-    while (_rx_xfers._elems.size() > 0 || _tx_xfers._elems.size() > 0) {
-        sched_yield();
+    while (_rx_xfers._elems.size() > 0){
+        _rx_xfers.notifyBlock();
+    }
+    while (_tx_xfers._elems.size() > 0) {
+        _tx_xfers.notifyBlock();
     }
     
     //close connections
