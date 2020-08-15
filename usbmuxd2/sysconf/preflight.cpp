@@ -26,14 +26,10 @@
 #include <libimobiledevice/lockdown.h>
 #include <libimobiledevice/notification_proxy.h>
 
-enum connection_type {
-    CONNECTION_USBMUXD = 1
-};
-
 struct idevice_private {
     char *udid;
     uint32_t mux_id;
-    connection_type conn_type;
+    idevice_connection_type conn_type;
     void *conn_data;
     int version;
 };

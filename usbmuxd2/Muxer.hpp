@@ -16,6 +16,7 @@
 #include <plist/plist++.h>
 #include <set>
 #include <Device.hpp>
+#include <Event.hpp>
 
 class Client;
 class ClientManager;
@@ -31,7 +32,7 @@ class Muxer {
     int _newid;
     bool _isDying;
     std::atomic<int> _refcnt;
-    std::mutex _reflock;
+    Event _refevent;
 
     Device *get_device_by_id(int id);
     

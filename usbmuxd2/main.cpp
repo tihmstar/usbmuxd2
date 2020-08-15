@@ -279,6 +279,7 @@ int main(int argc, const char * argv[]) {
     int lfd = -1;
     struct flock lock = {};
 
+    
     info("starting %s", VERSION_STRING);
     cassure(!pthread_mutex_init(&mlck, NULL));
     cassure(!pthread_mutex_lock(&mlck));

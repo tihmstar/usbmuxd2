@@ -14,6 +14,7 @@
 #include <Manager/DeviceManager/USBDeviceManager.hpp>
 #include <netinet/tcp.h>
 #include <Devices/USBDevice.hpp>
+#include <Event.hpp>
 
 class Client;
 class TCP : Manager {
@@ -34,7 +35,7 @@ class TCP : Manager {
     std::atomic_bool _didConnect;
     std::atomic_uint32_t _refCnt;
     std::mutex _lockStx;
-    std::mutex _lockCanSend; //puts threads to sleep if we can't send data
+    Event _lockCanSend; //puts threads to sleep if we can't send data
     uint16_t _sPort; //unmanaged
     uint16_t _dPort;
     struct pollfd *_pfds;  //socket lifetime IS managed by this class

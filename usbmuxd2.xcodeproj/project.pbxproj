@@ -24,11 +24,13 @@
 		8759A36F2308362A00B5C38F /* DeviceManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8759A36D2308362A00B5C38F /* DeviceManager.cpp */; };
 		8759A37223083C9E00B5C38F /* libusb-1.0.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8759A37123083C9E00B5C38F /* libusb-1.0.0.dylib */; };
 		875E0A6823095B32001154A0 /* TCP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 875E0A6623095B32001154A0 /* TCP.cpp */; };
-		8760D33E2311859000FFA5BB /* libimobiledevice.6.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8760D33D2311859000FFA5BB /* libimobiledevice.6.dylib */; };
+		876F97E624E85E3500AD6D78 /* Event.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 876F97E424E85E3500AD6D78 /* Event.cpp */; };
 		879836FD233D0FA000CEAC3D /* WIFIDeviceManager-avahi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 879836FB233D0FA000CEAC3D /* WIFIDeviceManager-avahi.cpp */; };
 		87983700233D0FFF00CEAC3D /* WIFIDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 879836FE233D0FFF00CEAC3D /* WIFIDevice.cpp */; };
 		87983703233D102E00CEAC3D /* SockConn.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 87983701233D102E00CEAC3D /* SockConn.cpp */; };
 		87983706233D105B00CEAC3D /* WIFIDeviceManager-mDNS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 87983704233D105B00CEAC3D /* WIFIDeviceManager-mDNS.cpp */; };
+		879ADD8D24E876BB00E0C4FF /* libimobiledevice-1.0.6.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 879ADD8C24E876BB00E0C4FF /* libimobiledevice-1.0.6.dylib */; };
+		879ADD8E24E876BB00E0C4FF /* libimobiledevice-1.0.6.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 879ADD8C24E876BB00E0C4FF /* libimobiledevice-1.0.6.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -40,6 +42,17 @@
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 1;
+		};
+		879ADD8F24E876BB00E0C4FF /* Embed Libraries */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				879ADD8E24E876BB00E0C4FF /* libimobiledevice-1.0.6.dylib in Embed Libraries */,
+			);
+			name = "Embed Libraries";
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
@@ -77,6 +90,8 @@
 		875E0A6623095B32001154A0 /* TCP.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TCP.cpp; sourceTree = "<group>"; };
 		875E0A6723095B32001154A0 /* TCP.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TCP.hpp; sourceTree = "<group>"; };
 		8760D33D2311859000FFA5BB /* libimobiledevice.6.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libimobiledevice.6.dylib; path = ../../../../usr/local/lib/libimobiledevice.6.dylib; sourceTree = "<group>"; };
+		876F97E424E85E3500AD6D78 /* Event.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Event.cpp; sourceTree = "<group>"; };
+		876F97E524E85E3500AD6D78 /* Event.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Event.hpp; sourceTree = "<group>"; };
 		879836FB233D0FA000CEAC3D /* WIFIDeviceManager-avahi.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "WIFIDeviceManager-avahi.cpp"; sourceTree = "<group>"; };
 		879836FC233D0FA000CEAC3D /* WIFIDeviceManager-avahi.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = "WIFIDeviceManager-avahi.hpp"; sourceTree = "<group>"; };
 		879836FE233D0FFF00CEAC3D /* WIFIDevice.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WIFIDevice.cpp; sourceTree = "<group>"; };
@@ -85,6 +100,7 @@
 		87983702233D102E00CEAC3D /* SockConn.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SockConn.hpp; sourceTree = "<group>"; };
 		87983704233D105B00CEAC3D /* WIFIDeviceManager-mDNS.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "WIFIDeviceManager-mDNS.cpp"; sourceTree = "<group>"; };
 		87983705233D105B00CEAC3D /* WIFIDeviceManager-mDNS.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "WIFIDeviceManager-mDNS.hpp"; sourceTree = "<group>"; };
+		879ADD8C24E876BB00E0C4FF /* libimobiledevice-1.0.6.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libimobiledevice-1.0.6.dylib"; path = "../../../../usr/local/lib/libimobiledevice-1.0.6.dylib"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -92,9 +108,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8760D33E2311859000FFA5BB /* libimobiledevice.6.dylib in Frameworks */,
 				874010562309465A004686AD /* libplist.3.dylib in Frameworks */,
 				874010542309464F004686AD /* libplist++.3.dylib in Frameworks */,
+				879ADD8D24E876BB00E0C4FF /* libimobiledevice-1.0.6.dylib in Frameworks */,
 				8759A37223083C9E00B5C38F /* libusb-1.0.0.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -146,6 +162,8 @@
 				8756C27A23083450001F0753 /* log.h */,
 				8756C27B23083450001F0753 /* log.c */,
 				873596AE2308490A00226410 /* lck_container.h */,
+				876F97E524E85E3500AD6D78 /* Event.hpp */,
+				876F97E424E85E3500AD6D78 /* Event.cpp */,
 				8756C27423083418001F0753 /* Device.hpp */,
 				8756C27323083418001F0753 /* Device.cpp */,
 				8756C27623083428001F0753 /* Devices */,
@@ -205,6 +223,7 @@
 		8759A37023083C9D00B5C38F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				879ADD8C24E876BB00E0C4FF /* libimobiledevice-1.0.6.dylib */,
 				8760D33D2311859000FFA5BB /* libimobiledevice.6.dylib */,
 				874010552309465A004686AD /* libplist.3.dylib */,
 				874010532309464F004686AD /* libplist++.3.dylib */,
@@ -223,6 +242,7 @@
 				8756C25D230831FB001F0753 /* Sources */,
 				8756C25E230831FB001F0753 /* Frameworks */,
 				8756C25F230831FB001F0753 /* CopyFiles */,
+				879ADD8F24E876BB00E0C4FF /* Embed Libraries */,
 			);
 			buildRules = (
 			);
@@ -281,6 +301,7 @@
 				8756C26E230833B6001F0753 /* Manager.cpp in Sources */,
 				87983706233D105B00CEAC3D /* WIFIDeviceManager-mDNS.cpp in Sources */,
 				8756C27F230834C2001F0753 /* Muxer.cpp in Sources */,
+				876F97E624E85E3500AD6D78 /* Event.cpp in Sources */,
 				8740105223094585004686AD /* preflight.cpp in Sources */,
 				87983703233D102E00CEAC3D /* SockConn.cpp in Sources */,
 				8740104A23093888004686AD /* Client.cpp in Sources */,

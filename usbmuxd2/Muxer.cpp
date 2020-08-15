@@ -70,7 +70,7 @@ Muxer::~Muxer(){
     }
 
     while (_refcnt > 0){
-        _reflock.lock();
+        _refevent.wait();
     }
     
     if (_climgr) {
@@ -259,7 +259,7 @@ Device *Muxer::get_device_by_id(int id){
 }
 
 void Muxer::delete_device_async(uint8_t bus, uint8_t address) noexcept{
-    ++_refcnt;_reflock.unlock(); //async thread has a ref to this
+    ++_refcnt;_refevent.notifyAll(); //async thread has a ref to this
     std::thread async([this,bus,address]{
         _devices.addMember();
         for (auto dev : _devices._elems){
@@ -268,14 +268,14 @@ void Muxer::delete_device_async(uint8_t bus, uint8_t address) noexcept{
                 if (usbdev->_address == address && usbdev->_bus == bus) {
                     _devices.delMember();
                     delete_device(dev);
-                    --_refcnt;_reflock.unlock();
+                    --_refcnt;_refevent.notifyAll();
                     return;
                 }
             }
         }
         _devices.delMember();
         error("We are not managing a device on bus 0x%02x, address 0x%02x",bus,address);
-        --_refcnt;_reflock.unlock();
+        --_refcnt;_refevent.notifyAll();
     });
     async.detach();
 }

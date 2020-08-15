@@ -14,6 +14,8 @@
 #include <Devices/WIFIDevice.hpp>
 #include <sysconf/sysconf.hpp>
 #include <Devices/WIFIDevice.hpp>
+#include <arpa/inet.h>
+#include <netdb.h>
 
 
 #ifdef HAVE_WIFI_MDNS
@@ -38,6 +40,9 @@ void resolve_reply(DNSServiceRef sdRef, DNSServiceFlags flags, uint32_t interfac
     int err = 0;
     WIFIDeviceManager *wifimgr = (WIFIDeviceManager*)context;
     WIFIDevice *dev = nullptr;
+    struct hostent *he = NULL;
+    std::string ipaddr = hosttarget;
+
     
     debug("Service '%s' at '%s':\n", fullname, hosttarget);
     std::string serviceName{fullname};
@@ -52,8 +57,21 @@ void resolve_reply(DNSServiceRef sdRef, DNSServiceFlags flags, uint32_t interfac
     
     if (!wifimgr->_mux->have_wifi_device(macAddr)) {
         // found new device
+        
+        if (inet_addr(ipaddr.c_str()) == 0xffffffff) {
+            cretassure(he = gethostbyname(ipaddr.c_str()), "failed to get hostbyname");
+            struct in_addr **addr_list = (struct in_addr **) he->h_addr_list;
+            
+            for(int i = 0; addr_list[i] != NULL; i++){
+                if(const char *ipv4addr_str=inet_ntoa(*addr_list[i])){
+                    ipaddr = ipv4addr_str;
+                    break;
+                }
+            }
+        }
+        
         try{
-            dev = new WIFIDevice(uuid, hosttarget, serviceName, wifimgr->_mux);
+            dev = new WIFIDevice(uuid, ipaddr.c_str(), serviceName, wifimgr->_mux);
         } catch (tihmstar::exception &e){
             creterror("failed to construct device with error=%d (%s)",e.code(),e.what());
         }
