@@ -17,10 +17,11 @@ usbmuxd_SOURCES = 	exception.cpp \
 			Device.cpp \
 			Devices/USBDevice.cpp \
 			Devices/WIFIDevice.cpp \
+			Event.cpp \
 			Manager/Manager.cpp \
 			Manager/DeviceManager/DeviceManager.cpp \
 			Manager/DeviceManager/USBDeviceManager.cpp \
-			Manager/DeviceManager/WIFIDeviceManager.cpp \
+			Manager/DeviceManager/WIFIDeviceManager-avahi.cpp \
 			Manager/ClientManager.cpp \
 			sysconf/sysconf.cpp \
 			sysconf/preflight.cpp \
