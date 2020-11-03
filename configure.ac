@@ -30,6 +30,7 @@ CXXFLAGS+=" -D VERSION_COMMIT_COUNT=\\\"$(git rev-list --count HEAD | tr -d '\n'
 CXXFLAGS+=" -D VERSION_COMMIT_SHA=\\\"$(git rev-parse HEAD | tr -d '\n')\\\""
 LDFLAGS+=" -lstdc++fs"
 
+PKG_CHECK_MODULES(libgeneral, libgeneral >= 32)
 PKG_CHECK_MODULES(libusb, libusb-1.0 >= 1.0.9)
 PKG_CHECK_MODULES(libplist, libplist >= 2.0.0)
 PKG_CHECK_MODULES(libplistxx, libplist++ >= 2.0.0)
@@ -60,7 +61,7 @@ if test "$debug_build" = true; then
   echo "*** Note: debug build requested ***"
   CFLAGS+=" -g -D DEBUG=1"
   CXXFLAGS+=" -g -D DEBUG=1"
-fi            
+fi
 
 
 if test "x$with_limd" == "xyes"; then

@@ -8,12 +8,17 @@
 
 /* Begin PBXBuildFile section */
 		8724CE2E2308863600495477 /* ClientManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8724CE2C2308863600495477 /* ClientManager.cpp */; };
-		873596AD2308412900226410 /* exception.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 873596AC2308412900226410 /* exception.cpp */; };
 		8740104A23093888004686AD /* Client.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8740104823093888004686AD /* Client.cpp */; };
 		8740104F23094578004686AD /* sysconf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8740104D23094578004686AD /* sysconf.cpp */; };
 		8740105223094585004686AD /* preflight.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8740105023094585004686AD /* preflight.cpp */; };
-		874010542309464F004686AD /* libplist++.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 874010532309464F004686AD /* libplist++.3.dylib */; };
-		874010562309465A004686AD /* libplist.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 874010552309465A004686AD /* libplist.3.dylib */; };
+		874FAB682551BDCF002AD27A /* libgeneral.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 874FAB672551BDCF002AD27A /* libgeneral.0.dylib */; };
+		874FAB692551BDCF002AD27A /* libgeneral.0.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 874FAB672551BDCF002AD27A /* libgeneral.0.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		874FAB6B2551BE12002AD27A /* libplist-2.0.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 874FAB6A2551BE12002AD27A /* libplist-2.0.3.dylib */; };
+		874FAB6C2551BE12002AD27A /* libplist-2.0.3.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 874FAB6A2551BE12002AD27A /* libplist-2.0.3.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		874FAB6E2551BE2A002AD27A /* libplist++-2.0.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 874FAB6D2551BE2A002AD27A /* libplist++-2.0.3.dylib */; };
+		874FAB6F2551BE2A002AD27A /* libplist++-2.0.3.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 874FAB6D2551BE2A002AD27A /* libplist++-2.0.3.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		874FAB712551BEA8002AD27A /* libusb-1.0.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 874FAB702551BEA8002AD27A /* libusb-1.0.0.dylib */; };
+		874FAB722551BEA8002AD27A /* libusb-1.0.0.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 874FAB702551BEA8002AD27A /* libusb-1.0.0.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		8756C265230831FB001F0753 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8756C264230831FB001F0753 /* main.cpp */; };
 		8756C26E230833B6001F0753 /* Manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8756C26C230833B6001F0753 /* Manager.cpp */; };
 		8756C272230833FB001F0753 /* USBDeviceManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8756C270230833FB001F0753 /* USBDeviceManager.cpp */; };
@@ -22,7 +27,6 @@
 		8756C27C23083450001F0753 /* log.c in Sources */ = {isa = PBXBuildFile; fileRef = 8756C27B23083450001F0753 /* log.c */; };
 		8756C27F230834C2001F0753 /* Muxer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8756C27D230834C2001F0753 /* Muxer.cpp */; };
 		8759A36F2308362A00B5C38F /* DeviceManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8759A36D2308362A00B5C38F /* DeviceManager.cpp */; };
-		8759A37223083C9E00B5C38F /* libusb-1.0.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 8759A37123083C9E00B5C38F /* libusb-1.0.0.dylib */; };
 		875E0A6823095B32001154A0 /* TCP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 875E0A6623095B32001154A0 /* TCP.cpp */; };
 		876F97E624E85E3500AD6D78 /* Event.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 876F97E424E85E3500AD6D78 /* Event.cpp */; };
 		879836FD233D0FA000CEAC3D /* WIFIDeviceManager-avahi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 879836FB233D0FA000CEAC3D /* WIFIDeviceManager-avahi.cpp */; };
@@ -50,6 +54,10 @@
 			dstSubfolderSpec = 10;
 			files = (
 				879ADD8E24E876BB00E0C4FF /* libimobiledevice-1.0.6.dylib in Embed Libraries */,
+				874FAB722551BEA8002AD27A /* libusb-1.0.0.dylib in Embed Libraries */,
+				874FAB692551BDCF002AD27A /* libgeneral.0.dylib in Embed Libraries */,
+				874FAB6C2551BE12002AD27A /* libplist-2.0.3.dylib in Embed Libraries */,
+				874FAB6F2551BE2A002AD27A /* libplist++-2.0.3.dylib in Embed Libraries */,
 			);
 			name = "Embed Libraries";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -59,7 +67,6 @@
 /* Begin PBXFileReference section */
 		8724CE2C2308863600495477 /* ClientManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ClientManager.cpp; sourceTree = "<group>"; };
 		8724CE2D2308863600495477 /* ClientManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ClientManager.hpp; sourceTree = "<group>"; };
-		873596AC2308412900226410 /* exception.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = exception.cpp; path = external/libgeneral/libgeneral/exception.cpp; sourceTree = SOURCE_ROOT; };
 		873596AE2308490A00226410 /* lck_container.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = lck_container.h; sourceTree = "<group>"; };
 		8740104823093888004686AD /* Client.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Client.cpp; sourceTree = "<group>"; };
 		8740104923093888004686AD /* Client.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Client.hpp; sourceTree = "<group>"; };
@@ -70,6 +77,10 @@
 		8740105123094585004686AD /* preflight.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = preflight.hpp; sourceTree = "<group>"; };
 		874010532309464F004686AD /* libplist++.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libplist++.3.dylib"; path = "../../../../usr/local/lib/libplist++.3.dylib"; sourceTree = "<group>"; };
 		874010552309465A004686AD /* libplist.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libplist.3.dylib; path = ../../../../usr/local/lib/libplist.3.dylib; sourceTree = "<group>"; };
+		874FAB672551BDCF002AD27A /* libgeneral.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libgeneral.0.dylib; path = ../../../../usr/local/lib/libgeneral.0.dylib; sourceTree = "<group>"; };
+		874FAB6A2551BE12002AD27A /* libplist-2.0.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libplist-2.0.3.dylib"; path = "../../../../usr/local/lib/libplist-2.0.3.dylib"; sourceTree = "<group>"; };
+		874FAB6D2551BE2A002AD27A /* libplist++-2.0.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libplist++-2.0.3.dylib"; path = "../../../../usr/local/lib/libplist++-2.0.3.dylib"; sourceTree = "<group>"; };
+		874FAB702551BEA8002AD27A /* libusb-1.0.0.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libusb-1.0.0.dylib"; path = "../../../../usr/local/Cellar/libusb/1.0.23/lib/libusb-1.0.0.dylib"; sourceTree = "<group>"; };
 		8756C261230831FB001F0753 /* usbmuxd2 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = usbmuxd2; sourceTree = BUILT_PRODUCTS_DIR; };
 		8756C264230831FB001F0753 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		8756C26C230833B6001F0753 /* Manager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Manager.cpp; sourceTree = "<group>"; };
@@ -108,24 +119,17 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				874010562309465A004686AD /* libplist.3.dylib in Frameworks */,
-				874010542309464F004686AD /* libplist++.3.dylib in Frameworks */,
 				879ADD8D24E876BB00E0C4FF /* libimobiledevice-1.0.6.dylib in Frameworks */,
-				8759A37223083C9E00B5C38F /* libusb-1.0.0.dylib in Frameworks */,
+				874FAB712551BEA8002AD27A /* libusb-1.0.0.dylib in Frameworks */,
+				874FAB6B2551BE12002AD27A /* libplist-2.0.3.dylib in Frameworks */,
+				874FAB682551BDCF002AD27A /* libgeneral.0.dylib in Frameworks */,
+				874FAB6E2551BE2A002AD27A /* libplist++-2.0.3.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		873596AB2308411800226410 /* external */ = {
-			isa = PBXGroup;
-			children = (
-				873596AC2308412900226410 /* exception.cpp */,
-			);
-			name = external;
-			sourceTree = "<group>";
-		};
 		8740104C23094561004686AD /* sysconf */ = {
 			isa = PBXGroup;
 			children = (
@@ -157,7 +161,6 @@
 		8756C263230831FB001F0753 /* usbmuxd2 */ = {
 			isa = PBXGroup;
 			children = (
-				873596AB2308411800226410 /* external */,
 				8740104B2309408B004686AD /* usbmuxd2-proto.h */,
 				8756C27A23083450001F0753 /* log.h */,
 				8756C27B23083450001F0753 /* log.c */,
@@ -223,6 +226,10 @@
 		8759A37023083C9D00B5C38F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				874FAB702551BEA8002AD27A /* libusb-1.0.0.dylib */,
+				874FAB6D2551BE2A002AD27A /* libplist++-2.0.3.dylib */,
+				874FAB6A2551BE12002AD27A /* libplist-2.0.3.dylib */,
+				874FAB672551BDCF002AD27A /* libgeneral.0.dylib */,
 				879ADD8C24E876BB00E0C4FF /* libimobiledevice-1.0.6.dylib */,
 				8760D33D2311859000FFA5BB /* libimobiledevice.6.dylib */,
 				874010552309465A004686AD /* libplist.3.dylib */,
@@ -307,7 +314,6 @@
 				8740104A23093888004686AD /* Client.cpp in Sources */,
 				8756C27523083418001F0753 /* Device.cpp in Sources */,
 				87983700233D0FFF00CEAC3D /* WIFIDevice.cpp in Sources */,
-				873596AD2308412900226410 /* exception.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -450,6 +456,7 @@
 					"$(inherited)",
 					/usr/local/Cellar/libusb/1.0.22/lib,
 					/usr/local/lib,
+					/usr/local/Cellar/libusb/1.0.23/lib,
 				);
 				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -473,6 +480,7 @@
 					"$(inherited)",
 					/usr/local/Cellar/libusb/1.0.22/lib,
 					/usr/local/lib,
+					/usr/local/Cellar/libusb/1.0.23/lib,
 				);
 				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
 				PRODUCT_NAME = "$(TARGET_NAME)";

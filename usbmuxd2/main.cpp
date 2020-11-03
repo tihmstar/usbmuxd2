@@ -222,7 +222,7 @@ static void parse_opts(int argc, const char **argv){
             ++verbose;
             break;
         case 'V':
-            printf("%s\n", PACKAGE_STRING);
+            printf("%s\n", VERSION_STRING);
             exit(0);
         case 'U':
             gConfig->dropUser = optarg;

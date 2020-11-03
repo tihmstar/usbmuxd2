@@ -41,7 +41,7 @@ void Event::wait(){
     uint64_t waitingForEvent = _curEvent+1;
     if (waitingForEvent == 0) waitingForEvent++;
     _cm.notify_all();
-    _cv.wait(lk, [&]{return _curEvent<waitingForEvent;});
+    _cv.wait(lk, [&]{return _curEvent>=waitingForEvent;});
     
     --_members;
 }
