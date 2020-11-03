@@ -15,6 +15,7 @@ usbmuxd_SOURCES = main.cpp \
 			TCP.cpp \
 			SockConn.cpp \
 			Device.cpp \
+			Event.cpp \
 			Devices/USBDevice.cpp \
 			Devices/WIFIDevice.cpp \
 			Manager/Manager.cpp \
