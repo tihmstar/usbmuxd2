@@ -32,8 +32,8 @@ LDFLAGS+=" -lstdc++fs"
 
 PKG_CHECK_MODULES(libgeneral, libgeneral >= 32)
 PKG_CHECK_MODULES(libusb, libusb-1.0 >= 1.0.9)
-PKG_CHECK_MODULES(libplist, libplist >= 2.0.0)
-PKG_CHECK_MODULES(libplistxx, libplist++ >= 2.0.0)
+PKG_CHECK_MODULES(libplist, libplist-2.0 >= 2.2.1)
+PKG_CHECK_MODULES(libplistxx, libplist++-2.0 >= 2.2.1)
 PKG_CHECK_MODULES(libimobiledevice, libimobiledevice-1.0 >= 1.2.1, have_limd=yes, have_limd=no)
 PKG_CHECK_MODULES(avahi, avahi-client >= 0.7, have_avahi=yes, have_avahi=no)
 AC_CHECK_LIB(pthread, [pthread_create, pthread_mutex_lock], [AC_SUBST(libpthread_LIBS,[-lpthread])], [AC_MSG_ERROR([libpthread is required to build usbmuxd2])])
