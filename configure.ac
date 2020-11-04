@@ -189,8 +189,14 @@ Configuration for $PACKAGE-$VERSION:
   install prefix ..........: $prefix
   Debug build .............: $debug_build
   preflight support .......: $with_limd
-  ẂIFI support ............: $with_wifi
+  ẂIFI support ............: $with_wifi"
   activation method .......: $activation_method"
+
+if test "x$with_wifi" = "xyes"; then
+  if test "x$have_avahi" = "xyes"; then
+    echo "  ẂIFI backend ............: avahi"
+  fi
+fi
 
 if test "x$activation_method" = "xsystemd"; then
   echo "  systemd unit directory ..: ${systemdsystemunitdir}"
