@@ -307,7 +307,7 @@ int main(int argc, const char * argv[]) {
 
     if (gConfig->debugLevel) {
         info("debuglevel set to %d",gConfig->debugLevel);
-#ifndef HAVE_LIBIMOBILEDEVICE
+#ifdef HAVE_LIBIMOBILEDEVICE
         idevice_set_debug_level(gConfig->debugLevel);
 #endif
     }
