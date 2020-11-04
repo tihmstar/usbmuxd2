@@ -37,6 +37,7 @@ public:
 	bool enableExit;
 	bool daemonize;
 	bool useLogfile;
+    int debugLevel;
 	std::string dropUser;
 	
 	Config();

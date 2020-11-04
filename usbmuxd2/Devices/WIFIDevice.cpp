@@ -43,7 +43,7 @@ WIFIDevice::~WIFIDevice() {
 
 void WIFIDevice::loopEvent(){
     heartbeat_error_t hret = HEARTBEAT_E_SUCCESS;
-	retassure((hret = heartbeat_receive_with_timeout(_hbclient,&_hbeat,15000)) == HEARTBEAT_E_SUCCESS, "failed to recv heartbeat");
+	retassure((hret = heartbeat_receive_with_timeout(_hbclient,&_hbeat,15000)) == HEARTBEAT_E_SUCCESS, "failed to recv heartbeat with error=%d",hret);
     if (_hbeat){
        plist_free(_hbeat);_hbeat=NULL;
     }

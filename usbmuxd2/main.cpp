@@ -24,6 +24,11 @@
 #include <grp.h>
 #include <stdio.h>
 
+extern "C"{
+#ifdef HAVE_LIBIMOBILEDEVICE
+#include <libimobiledevice/libimobiledevice.h>
+#endif
+};
 
 #undef error //errors will be printed as fatal for this file
 #define error(a ...) usbmuxd_log(LL_FATAL,a)
@@ -174,6 +179,7 @@ static void usage(){
     printf("  -l, --logfile=LOGFILE\tLog (append) to LOGFILE instead of stderr or syslog.\n");
     printf("      --nowifi\t do not start WIFIDeviceManager\n");
     printf("      --nousb\t do not start USBDeviceManager\n");
+    printf("      --debug\t enable debug logging\n");
     printf("\n");
 }
 
@@ -195,6 +201,7 @@ static void parse_opts(int argc, const char **argv){
         {"user", required_argument, NULL, 'U'},
         {"nowifi", optional_argument, NULL, '0'},
         {"nousb", optional_argument, NULL, '1'},
+        {"debug", no_argument, NULL, 2},
         {NULL, 0, NULL, 0}
     };
     int c;
@@ -266,6 +273,9 @@ static void parse_opts(int argc, const char **argv){
                 gConfig->useLogfile = 1;
             }
             break;
+        case 2: //debug
+                gConfig->debugLevel++;
+                break;
         default:
             usage();
             exit(2);
@@ -295,6 +305,13 @@ int main(int argc, const char * argv[]) {
 
     parse_opts(argc,argv);
 
+    if (gConfig->debugLevel) {
+        info("debuglevel set to %d",gConfig->debugLevel);
+#ifndef HAVE_LIBIMOBILEDEVICE
+        idevice_set_debug_level(gConfig->debugLevel);
+#endif
+    }
+    
     if (gConfig->daemonize && !gConfig->useLogfile) {
         verbose += LL_INFO;
         debug("enabling syslog");

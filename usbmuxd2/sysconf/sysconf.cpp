@@ -411,7 +411,8 @@ Config::Config() :
 //commandline
 enableExit(false),
 daemonize(false),
-useLogfile(false)
+useLogfile(false),
+debugLevel(0)
 {
     //empty
 }
