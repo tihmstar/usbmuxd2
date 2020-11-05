@@ -65,18 +65,33 @@ error:
     if (lockdown)
         lockdownd_client_free(lockdown);
     if (cb_data) {
-        std::thread delthread([](np_cb_data *cb_data){
-            debug("deleing pairing_callback cb_data(%p)",cb_data);
-            if (cb_data->np){ //this needs to be set!
-                np_set_notify_callback(cb_data->np, NULL, NULL); //join thread and make sure no more callbacks!
-                np_client_free(cb_data->np);
+        
+        {
+        thread_retry:
+            try {
+                std::thread delthread([](np_cb_data *cb_data){
+                    debug("deleing pairing_callback cb_data(%p)",cb_data);
+                    if (cb_data->np){ //this needs to be set!
+                        np_set_notify_callback(cb_data->np, NULL, NULL); //join thread and make sure no more callbacks!
+                        np_client_free(cb_data->np);
+                    }
+                    if (cb_data->dev) {
+                        idevice_free(cb_data->dev);
+                    }
+                    safeFree(cb_data);
+                },cb_data);
+                delthread.detach();
+            } catch (std::system_error &e) {
+                if (e.code() == std::errc::resource_unavailable_try_again) {
+                    error("[THREAD] creating thread threw EAGAIN! retrying in 5 seconds...");
+                    sleep(5);
+                    goto thread_retry;
+                }
+                error("[THREAD] got unhandled std::system_error %d (%s)",e.code().value(),e.exception::what());
+                throw;
             }
-            if (cb_data->dev) {
-                idevice_free(cb_data->dev);
-            }
-            safeFree(cb_data);
-        },cb_data);
-        delthread.detach();
+        }
+        
     }
 }
 

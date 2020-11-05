@@ -10,6 +10,7 @@
 #include <libgeneral/macros.h>
 #include <libgeneral/exception.hpp>
 #include "log.h"
+#include <unistd.h>
 
 Manager::Manager()
 : _loopThread(nullptr),_loopState(LOOP_UNINITIALISED)
@@ -43,21 +44,35 @@ void Manager::startLoop(){
     assure(_loopState.compare_exchange_strong(expected, tobeplaced));    
     assure(!_loopThread);
 
-    _loopThread = new std::thread([&]{
-        _loopState = LOOP_RUNNING;
-        _sleepy.unlock();
-        while (_loopState == LOOP_RUNNING) {
-            try {
-                loopEvent();
-            } catch (tihmstar::exception &e) {
-                debug("breaking Manager-Loop because of exception error=%s code=%d",e.what(),e.code());
-                break;
-            }
-        }
-        afterLoop();
-        _loopState = LOOP_STOPPED;
-    });
     
+    {
+    thread_retry:
+        try {
+            _loopThread = new std::thread([&]{
+                _loopState = LOOP_RUNNING;
+                _sleepy.unlock();
+                while (_loopState == LOOP_RUNNING) {
+                    try {
+                        loopEvent();
+                    } catch (tihmstar::exception &e) {
+                        debug("breaking Manager-Loop because of exception error=%s code=%d",e.what(),e.code());
+                        break;
+                    }
+                }
+                afterLoop();
+                _loopState = LOOP_STOPPED;
+            });
+        } catch (std::system_error &e) {
+            if (e.code() == std::errc::resource_unavailable_try_again) {
+                error("[THREAD] creating thread threw EAGAIN! retrying in 5 seconds...");
+                sleep(5);
+                goto thread_retry;
+            }
+            error("[THREAD] got unhandled std::system_error %d (%s)",e.code().value(),e.exception::what());
+            throw;
+        }
+    }
+
     //hangs here iff _loopThread didn't spawn yet
     _sleepy.lock();
     assure(_loopState == LOOP_RUNNING); //sanity check

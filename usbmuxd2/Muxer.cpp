@@ -21,6 +21,7 @@
 #include <sysconf/sysconf.hpp>
 #include <string.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 
 #ifdef HAVE_WIFI_SUPPORT
 #   ifdef HAVE_WIFI_AVAHI
@@ -207,15 +208,32 @@ void Muxer::add_device(Device *dev) noexcept{
 #ifdef HAVE_LIBIMOBILEDEVICE
     if (dev->_conntype == Device::MUXCONN_USB && _doPreflight){
         char *serial = strdup(dev->_serial);
-        std::thread b([](char *serial, int devID){
+        
+        
+        {
+        thread_retry:
             try {
-                preflight_device(serial,devID);
-            } catch (tihmstar::exception &e) {
-                error("failed to preflight device %s with error=%s code=%d",serial,e.what(),e.code());
+                std::thread b([](char *serial, int devID){
+                    try {
+                        preflight_device(serial,devID);
+                    } catch (tihmstar::exception &e) {
+                        error("failed to preflight device %s with error=%s code=%d",serial,e.what(),e.code());
+                    }
+                    free(serial);
+                },serial,dev->_id);
+                b.detach();
+            } catch (std::system_error &e) {
+                if (e.code() == std::errc::resource_unavailable_try_again) {
+                    error("[THREAD] creating thread threw EAGAIN! retrying in 5 seconds...");
+                    sleep(5);
+                    goto thread_retry;
+                }
+                error("[THREAD] got unhandled std::system_error %d (%s)",e.code().value(),e.exception::what());
+                throw;
             }
-            free(serial);
-        },serial,dev->_id);
-        b.detach();
+        }
+        
+        
     }
 #endif //HAVE_LIBIMOBILEDEVICE
     _devices.delMember();
@@ -260,24 +278,42 @@ Device *Muxer::get_device_by_id(int id){
 
 void Muxer::delete_device_async(uint8_t bus, uint8_t address) noexcept{
     ++_refcnt;_refevent.notifyAll(); //async thread has a ref to this
-    std::thread async([this,bus,address]{
-        _devices.addMember();
-        for (auto dev : _devices._elems){
-            if (dev->_conntype == Device::MUXCONN_USB) {
-                USBDevice *usbdev = (USBDevice*)dev;
-                if (usbdev->_address == address && usbdev->_bus == bus) {
-                    _devices.delMember();
-                    delete_device(dev);
-                    --_refcnt;_refevent.notifyAll();
-                    return;
+    
+    
+    {
+    thread_retry:
+        try {
+            std::thread async([this,bus,address]{
+                _devices.addMember();
+                for (auto dev : _devices._elems){
+                    if (dev->_conntype == Device::MUXCONN_USB) {
+                        USBDevice *usbdev = (USBDevice*)dev;
+                        if (usbdev->_address == address && usbdev->_bus == bus) {
+                            _devices.delMember();
+                            delete_device(dev);
+                            --_refcnt;_refevent.notifyAll();
+                            return;
+                        }
+                    }
                 }
+                _devices.delMember();
+                error("We are not managing a device on bus 0x%02x, address 0x%02x",bus,address);
+                --_refcnt;_refevent.notifyAll();
+            });
+            async.detach();
+        } catch (std::system_error &e) {
+            if (e.code() == std::errc::resource_unavailable_try_again) {
+                error("[THREAD] creating thread threw EAGAIN! retrying in 5 seconds...");
+                sleep(5);
+                goto thread_retry;
             }
+            error("[THREAD] got unhandled std::system_error %d (%s)",e.code().value(),e.exception::what());
+            throw;
         }
-        _devices.delMember();
-        error("We are not managing a device on bus 0x%02x, address 0x%02x",bus,address);
-        --_refcnt;_refevent.notifyAll();
-    });
-    async.detach();
+    }
+    
+    
+
 }
 
 bool Muxer::have_usb_device(uint8_t bus, uint8_t address) noexcept{
