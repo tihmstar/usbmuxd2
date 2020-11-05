@@ -11,6 +11,8 @@
 #include <libgeneral/exception.hpp>
 #include "log.h"
 #include <unistd.h>
+#include <system_error>
+
 
 Manager::Manager()
 : _loopThread(nullptr),_loopState(LOOP_UNINITIALISED)

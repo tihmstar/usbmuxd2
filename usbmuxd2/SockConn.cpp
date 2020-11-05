@@ -23,6 +23,8 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <netdb.h>
+#include <system_error>
+
 
 SockConn::SockConn(std::string ipaddr, uint16_t dPort, Client *cli) 
 : _ipaddr(ipaddr), _cli(cli), _dPort(dPort), _killInProcess(false), _didConnect(false), _cfd(-1), _dfd(-1), _pfds(NULL)

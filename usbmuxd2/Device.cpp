@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <thread>
 #include <unistd.h>
+#include <system_error>
 
 Device::Device(Muxer *mux, mux_conn_type conntype)
     : _muxer(mux), _conntype(conntype), _killInProcess(false), _id(0), _serial{}

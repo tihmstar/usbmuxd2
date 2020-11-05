@@ -18,6 +18,8 @@
 #include <future>
 #include <plist/plist.h>
 #include <plist/plist++.h>
+#include <system_error>
+
 
 
 #ifdef HAVE_LIBIMOBILEDEVICE

@@ -16,6 +16,8 @@
 #include <netinet/tcp.h>
 #include <unistd.h>
 #include <sysconf/sysconf.hpp>
+#include <system_error>
+
 
 Client::Client(Muxer *mux, int fd, uint64_t number)
     :  _muxer(mux), _recvbuffer(NULL), _info{}, _killInProcess(false), _wlock{}, _recvbufferSize(0), _number(number), _fd(fd),

@@ -22,6 +22,8 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <system_error>
+
 
 #ifdef HAVE_WIFI_SUPPORT
 #   ifdef HAVE_WIFI_AVAHI
