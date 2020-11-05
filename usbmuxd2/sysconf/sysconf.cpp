@@ -17,6 +17,8 @@
 #include <fcntl.h>
 #include <string.h>
 #include <map>
+#include <plist/plist.h>
+#include <vector>
 
 #ifdef HAVE_FILESYSTEM
 #include <filesystem>
@@ -124,12 +126,13 @@ static void mkdir_with_parents(const char *dir, int mode){
     mkdir_with_parents(parentdir, mode);
 }
 
-PList::Node *readPlist(const char *filePath){
+
+
+plist_t readPlist(const char *filePath){
     int fd = 0;
     struct stat finfo{};
     char *fbuf = NULL;
     plist_t pl = NULL;
-    PList::Node *ret = nullptr; //we return this, so don't free it
     cleanup([&]{
         if (fd) {
             close(fd);
@@ -137,7 +140,7 @@ PList::Node *readPlist(const char *filePath){
         safeFree(fbuf);
     });
     
-    assure((fd = open(filePath, O_RDONLY))>0);
+    retassure((fd = open(filePath, O_RDONLY))>0, "Failed to read plist at path '%s'",filePath);
     assure(!fstat(fd, &finfo));
     
     assure(fbuf = (char*)malloc(finfo.st_size));
@@ -150,25 +153,21 @@ PList::Node *readPlist(const char *filePath){
         plist_from_xml(fbuf, (uint32_t)finfo.st_size, &pl);
     }
     
-    assure(ret = PList::Node::FromPlist(pl));
-    //ret object constructed successfully, don't free pl
-    pl = NULL;
-    return ret;
+    return pl;
 }
 
-void writePlist(const char *filePath, const PList::Structure *plist){
-    int fd = 0;
-    std::string xml;
+void writePlistToFile(plist_t plist, const char *dst){
+    char *buf = NULL;
+    FILE * saveFile = NULL;
     cleanup([&]{
-        if (fd) {
-            close(fd);
-        }
+        safeFree(buf);
+        safeFreeCustom(saveFile, fclose);
     });
+    uint32_t bufLen = 0;
+    plist_to_xml(plist, &buf, &bufLen);
     
-    assure((fd = open(filePath, O_WRONLY | O_CREAT, 0644))>0);
-    
-    xml = plist->ToXml();
-    assure(write(fd, xml.c_str(), xml.size()) == xml.size());
+    retassure(saveFile = fopen(dst, "w"), "Failed to write plist file to=%s",dst);
+    assure(fwrite(buf, 1, bufLen, saveFile) == bufLen);
 }
 
 static void sysconf_create_config_dir(void){
@@ -196,25 +195,18 @@ char *get_device_record_path(const char *udid){
     return filepath;
 }
 
-PList::Dictionary *sysconf_get_device_record(const char *udid){
+plist_t sysconf_get_device_record(const char *udid){
     char *filepath = NULL;
-    PList::Node *somenode = nullptr;
-    PList::Dictionary *ret = nullptr;
     cleanup([&]{
         safeFree(filepath);
-        if (somenode) {
-            delete somenode;
-        }
     });
     filepath = get_device_record_path(udid);
     
-    somenode = readPlist(filepath);
-    ret = dynamic_cast<PList::Dictionary*>(somenode);somenode = nullptr;
-    return ret;
+    return readPlist(filepath);
 }
 
 
-void sysconf_set_device_record(const char *udid, const PList::Dictionary *record){
+void sysconf_set_device_record(const char *udid, const plist_t record){
     char *filepath = NULL;
     std::string xmlRecord;
     cleanup([&]{
@@ -224,7 +216,7 @@ void sysconf_set_device_record(const char *udid, const PList::Dictionary *record
     assure(record);
     filepath = get_device_record_path(udid);
     
-    writePlist(filepath, record);
+    writePlistToFile(record, filepath);
     sysconf_load_known_macaddrs();
 }
 
@@ -241,86 +233,70 @@ void sysconf_remove_device_record(const char *udid){
 
 
 //allocated a Node
-PList::Node *sysconf_get_value(const std::string &key){
+plist_t sysconf_get_value(const std::string &key){
     char *filepath = NULL;
-    PList::Dictionary *conf = nullptr;
-    PList::Node *somenode = nullptr;
-    PList::Node *ret = nullptr;
+    plist_t p_devrecord = NULL;
     cleanup([&]{
         safeFree(filepath);
-        if (conf) {
-            delete conf;
-        }
-        if (somenode) {
-            delete somenode;
-        }
+        safeFreeCustom(p_devrecord, plist_free);
     });
+    plist_t p_val = NULL;
     filepath = get_device_record_path(CONFIG_FILE);
     
-    somenode = readPlist(filepath);
-    conf = dynamic_cast<PList::Dictionary*>(somenode);somenode = nullptr;
-    assure(ret = (*conf)[key]);
+    p_devrecord = readPlist(filepath);
     
-    return ret->Clone();
+    retassure(p_val = plist_dict_get_item(p_devrecord, key.c_str()), "Failed to get value for key '%s'",key.c_str());
+
+    return plist_copy(p_val);
 }
 
-void sysconf_set_value(const std::string &key, PList::Node *val){
+void sysconf_set_value(const std::string &key, plist_t val){
     char *filepath = NULL;
-    PList::Dictionary *conf = nullptr;
-    PList::Node *somenode = nullptr;
+    plist_t p_sysconf = NULL;
     cleanup([&]{
         safeFree(filepath);
-        if (somenode) {
-            delete somenode;
-        }
+        safeFreeCustom(p_sysconf, plist_free);
     });
     filepath = get_device_record_path(CONFIG_FILE);
     
     try {
-        somenode = readPlist(filepath);
-        conf = dynamic_cast<PList::Dictionary*>(somenode);somenode=nullptr;
+        p_sysconf = readPlist(filepath);
     } catch (tihmstar::exception &e) {
         warning("%s: Reading %s failed! Regenerating!",__func__,CONFIG_FILE);
-        conf = new PList::Dictionary();
+        p_sysconf = plist_new_dict();
     }
-    conf->Set(key, val);
-    writePlist(filepath, conf);
+    
+    plist_dict_set_item(p_sysconf, key.c_str(), val);
+    writePlistToFile(p_sysconf, filepath);
 }
 
 std::string sysconf_get_system_buid(){
-    PList::String *pBuid = nullptr;
-    PList::Node *somenode = nullptr;
+    plist_t p_buid = NULL;
     cleanup([&]{
-        if (pBuid) {
-            delete pBuid;
-        }
-        if (somenode) {
-            delete somenode;
-        }
-    })
+        safeFreeCustom(p_buid, plist_free);
+    });
+    const char *buid_str = NULL;
+    uint64_t buid_str_len = 0;
+    
     try {
-        somenode = sysconf_get_value(CONFIG_SYSTEM_BUID_KEY);
-        pBuid = dynamic_cast<PList::String*>(somenode);somenode = nullptr;
+        p_buid = sysconf_get_value(CONFIG_SYSTEM_BUID_KEY);
     } catch (tihmstar::exception &e) {
         warning("Failed to get SystemBuid! regenerating %s",CONFIG_FILE);
         std::string buid = sysconf_generate_system_buid();
-        pBuid = new PList::String(buid);
-        sysconf_set_value(CONFIG_SYSTEM_BUID_KEY, pBuid);
+        p_buid = plist_new_string(buid.c_str());
+        sysconf_set_value(CONFIG_SYSTEM_BUID_KEY, p_buid);
     }
     
-    return pBuid->GetValue();
+    retassure(buid_str = plist_get_string_ptr(p_buid, &buid_str_len), "Failed to get str ptr from build");
+    
+    return std::string(buid_str,buid_str_len);
 }
 
 static void sysconf_load_known_macaddrs(){
     constexpr const char *config_path = sysconf_get_config_dir();
     char *sysconfigpath = NULL;
-    PList::Node *somenode = nullptr;
-    PList::Dictionary *pairingRecord = nullptr;
     cleanup([&]{
         safeFree(sysconfigpath);
-        if (somenode) {
-            delete somenode;
-        }
     });
 
     sysconf_create_config_dir();
@@ -329,27 +305,38 @@ static void sysconf_load_known_macaddrs(){
 
     sysconfigpath = get_device_record_path(CONFIG_FILE);
 
-    for(auto& p: std::filesystem::directory_iterator(config_path)){
+    for(auto& p : std::filesystem::directory_iterator(config_path)){
         if (p.path() == sysconfigpath)
             continue; //ignore sysconfig file
-        if (somenode) {
-            delete somenode;somenode = nullptr;
-        }
         debug("reading file=%s\n",p.path().c_str());
         try{ //we ignore any error happening in here
-            PList::String *macaddr = nullptr;
-            somenode = readPlist(p.path().c_str());
-            pairingRecord = dynamic_cast<PList::Dictionary*>(somenode);
-            assure(macaddr = dynamic_cast<PList::String*>((*pairingRecord)["WiFiMACAddress"]));
+            plist_t p_devrecord = NULL;
+            cleanup([&]{
+                safeFreeCustom(p_devrecord, plist_free);
+            });
+            plist_t p_macaddr = NULL;
+            std::string macaddr;
+
+            p_devrecord = readPlist(p.path().c_str());
+            
+            retassure(p_macaddr = plist_dict_get_item(p_devrecord, "WiFiMACAddress"), "Failed to read macaddr from pairing record");
+            
+            {
+                const char *str = NULL;
+                uint64_t str_len = 0;
+                retassure(str = plist_get_string_ptr(p_macaddr, &str_len), "Faile to get str ptr from MacAddress");
+                macaddr = std::string(str,str_len);
+            }
+            
             std::string path = p.path();
 
             size_t lastSlashPos = path.find_last_of("/")+1;
             size_t dotPos = path.find(".");
 
             std::string uuid = path.substr(lastSlashPos,dotPos-lastSlashPos);
-            debug("adding macaddr=%s for uuid=%s",macaddr->GetValue().c_str(),uuid.c_str());
+            debug("adding macaddr=%s for uuid=%s",macaddr.c_str(),uuid.c_str());
             
-            gKnownMacAddrs[macaddr->GetValue()] = uuid;
+            gKnownMacAddrs[macaddr] = uuid;
             
         } catch (tihmstar::exception &e){
             debug("failed to read record with error=%d (%s)",e.code(),e.what());
@@ -383,29 +370,24 @@ void sysconf_fix_permissions(int uid, int gid){
 
 #pragma mark config
 
-template <typename PType, typename RType>
-RType sysconf_try_getconfig(std::string key, RType defaultValue){
-    PType *pVal = nullptr;
-    PList::Node *somenode = nullptr;
+
+bool sysconf_try_getconfig_bool(std::string key, bool defaultValue){
+    plist_t p_boolVal = NULL;
     cleanup([&]{
-        if (pVal) {
-            delete pVal;
-        }
-        if (somenode) {
-            delete somenode;
-        }
-    })
+        safeFreeCustom(p_boolVal, plist_free);
+    });
     try {
-        somenode = sysconf_get_value(key);
-        pVal = dynamic_cast<PType*>(somenode);somenode = nullptr;
+        p_boolVal = sysconf_get_value(key);
+        assure(plist_get_node_type(p_boolVal) == PLIST_BOOLEAN);
+        return plist_bool_val_is_true(p_boolVal);
     } catch (tihmstar::exception &e) {
         warning("Failed to get %s! setting it to default val",key.c_str());
-        pVal = new PType(defaultValue);
-        sysconf_set_value(key, pVal);
+        p_boolVal = plist_new_bool(defaultValue);
+        sysconf_set_value(key, p_boolVal);
+        return defaultValue;
     }
-    
-    return pVal->GetValue();
 }
+
 
 Config::Config() : 
 //commandline
@@ -419,8 +401,8 @@ debugLevel(0)
 
 void Config::load(){
     //config
-    doPreflight = sysconf_try_getconfig<PList::Boolean, bool>("doPreflight",true);
-    enableWifiDeviceManager = sysconf_try_getconfig<PList::Boolean, bool>("enableWifiDeviceManager",true);
-    enableUSBDeviceManager = sysconf_try_getconfig<PList::Boolean, bool>("enableUSBDeviceManager",true);
+    doPreflight = sysconf_try_getconfig_bool("doPreflight",true);
+    enableWifiDeviceManager = sysconf_try_getconfig_bool("enableWifiDeviceManager",true);
+    enableUSBDeviceManager = sysconf_try_getconfig_bool("enableUSBDeviceManager",true);
     info("Loaded config");    
 }

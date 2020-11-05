@@ -13,7 +13,6 @@
 #include <Muxer.hpp>
 #include <usbmuxd2-proto.h>
 #include <plist/plist.h>
-#include <plist/plist++.h>
 #include <functional>
 
 /*
@@ -47,7 +46,7 @@ private:
     bool _isListening;
     
     virtual void loopEvent() override;
-    void update_client_info(plist_t dict);
+    void update_client_info(const plist_t dict);
     
     void readData();
     void recv_data();

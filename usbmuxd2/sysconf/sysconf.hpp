@@ -9,15 +9,14 @@
 #ifndef sysconf_hpp
 #define sysconf_hpp
 
-
-#include <plist/plist++.h>
 #include <string>
+#include <plist/plist.h>
 
 constexpr const char *sysconf_get_config_dir();
 
-PList::Dictionary *sysconf_get_device_record(const char *udid);
+plist_t sysconf_get_device_record(const char *udid);
 
-void sysconf_set_device_record(const char *udid, const PList::Dictionary *record);
+void sysconf_set_device_record(const char *udid, const plist_t record);
 void sysconf_remove_device_record(const char *udid);
 
 std::string sysconf_get_system_buid();

@@ -80,7 +80,7 @@ void Client::loopEvent(){
     }
 }
 
-void Client::update_client_info(plist_t dict){
+void Client::update_client_info(const plist_t dict){
     plist_t node = NULL;
     if ((node = plist_dict_get_item(dict, "ClientVersionString")) && (plist_get_node_type(node) == PLIST_STRING)) {
         plist_get_string_val(node, &_info.clientVersionString);
@@ -156,15 +156,9 @@ void Client::kill() noexcept{
 }
 
 void Client::processData(usbmuxd_header *hdr){
-    plist_t pTmp = NULL;
-    PList::Dictionary *dict = nullptr;
+    plist_t p_recieved = NULL;
     cleanup([&]{
-        if (pTmp) {
-            plist_free(pTmp);
-        }
-        if (dict) {
-            delete dict;
-        }
+        safeFreeCustom(p_recieved, plist_free);
     });
     const char *payload = NULL; //not alloced
     const struct usbmuxd_connect_request *conn_req = NULL; //not allocated
@@ -190,30 +184,35 @@ void Client::processData(usbmuxd_header *hdr){
             payload = (char*)(hdr) + sizeof(struct usbmuxd_header);
             payload_size = hdr->length - sizeof(struct usbmuxd_header);
             
-            plist_from_xml(payload, payload_size, &pTmp);
-            {
-                auto somenode = PList::Node::FromPlist(pTmp);
-                dict = dynamic_cast<PList::Dictionary*>(somenode);
-            }
-            pTmp = NULL; //ownership held by dict now
-            retassure(dict, "Could not parse plist from payload!");
+            plist_from_xml(payload, payload_size, &p_recieved);
             
             {
-                PList::String *pMessage = nullptr;
-                assert(pMessage = dynamic_cast<PList::String*>((*dict)["MessageType"]));
-                message = pMessage->GetValue();
+                plist_t p_messageType = NULL;
+                const char *str = NULL;
+                uint64_t str_len = 0;
+                
+                retassure(p_messageType = plist_dict_get_item(p_recieved, "MessageType"), "Failed to get MessageType from recieved plist");
+                
+                retassure(str = plist_get_string_ptr(p_messageType, &str_len), "Failed to get str ptr from MessageType");
+                
+                message = std::string(str,str_len);
             }
-            update_client_info(dict->GetPlist());
+            
+            update_client_info(p_recieved);
             
             if (message == "Listen") {
                 goto PLIST_CLIENT_LISTEN_LOC;
             } else if (message == "Connect") {
-                PList::Integer *pInt = nullptr; //not allocated
+                plist_t p_intval = NULL;
                 
                 // get device id
                 try {
-                    assure(pInt = dynamic_cast<PList::Integer*>((*dict)["DeviceID"]));
-                    device_id = (uint16_t)pInt->GetValue();
+                    uint64_t tmpDeviceID = 0;
+                    assure(p_intval = plist_dict_get_item(p_recieved, "DeviceID"));
+                    assure(plist_get_node_type(p_intval) == PLIST_UINT);
+                    
+                    plist_get_uint_val(p_intval, &tmpDeviceID);
+                    device_id = (uint32_t)tmpDeviceID;
                 } catch (tihmstar::exception &e) {
                     error("Received connect request without device_id!");
                     send_result(hdr->tag, RESULT_BADDEV);
@@ -222,8 +221,12 @@ void Client::processData(usbmuxd_header *hdr){
                 
                 // get port number
                 try {
-                    assure(pInt = dynamic_cast<PList::Integer*>((*dict)["PortNumber"]));
-                    portnum = ntohs((uint16_t)pInt->GetValue());
+                    uint64_t tmpPortNumber = 0;
+                    assure(p_intval = plist_dict_get_item(p_recieved, "PortNumber"));
+                    assure(plist_get_node_type(p_intval) == PLIST_UINT);
+                    
+                    plist_get_uint_val(p_intval, &tmpPortNumber);
+                    portnum = ntohs((uint16_t)tmpPortNumber);
                 } catch (tihmstar::exception &e) {
                     error("Received connect request without port number!");
                     send_result(hdr->tag, RESULT_BADDEV);
@@ -235,25 +238,34 @@ void Client::processData(usbmuxd_header *hdr){
                 _muxer->send_deviceList(this, hdr->tag);
                 return;
             } else if (message == "ReadBUID") {
+                plist_t p_rsp = NULL;
+                cleanup([&]{
+                    safeFreeCustom(p_rsp, plist_free);
+                });
                 std::string buid = sysconf_get_system_buid();
-                PList::Dictionary rspDict;
-                rspDict.Set("BUID", PList::String(buid));
-                send_plist_pkt(hdr->tag, rspDict.GetPlist());
+                p_rsp = plist_new_dict();
+                plist_dict_set_item(p_rsp, "BUID", plist_new_string(buid.c_str()));
+                send_plist_pkt(hdr->tag, p_rsp);
                 return;
             } else if (message == "ReadPairRecord") {
-                PList::String *pRecord_id = nullptr;
-                std::string record_id;
-                PList::Dictionary *devrecord = nullptr;
+                plist_t p_devrecord = NULL;
+                plist_t p_rsp = NULL;
                 cleanup([&]{
-                    if (devrecord) {
-                        delete devrecord;
-                    }
+                    safeFreeCustom(p_devrecord, plist_free);
+                    safeFreeCustom(p_rsp, plist_free);
                 });
+                std::string record_id;
+                plist_t p_recordid = NULL;
                 
                 // get pair record id
                 try {
-                    assure(pRecord_id = dynamic_cast<PList::String*>((*dict)["PairRecordID"]));
-                    record_id = pRecord_id->GetValue();
+                    const char *str = NULL;
+                    uint64_t str_len = 0;
+
+                    assure(p_recordid = plist_dict_get_item(p_recieved, "PairRecordID"));
+                    retassure(str = plist_get_string_ptr(p_recordid, &str_len), "Failed to get str ptr from PairRecordID");
+                    
+                    record_id = std::string(str,str_len);
                 } catch (tihmstar::exception &e) {
                     error("Reading record id failed!");
                     send_result(hdr->tag, EINVAL);
@@ -261,80 +273,85 @@ void Client::processData(usbmuxd_header *hdr){
                 }
                 
                 try {
-                    devrecord = sysconf_get_device_record(record_id.c_str());
+                    p_devrecord = sysconf_get_device_record(record_id.c_str());
                 } catch (tihmstar::exception &e) {
                     info("no record data found for device %s",record_id.c_str());
                     send_result(hdr->tag, ENOENT);
                     return;
                 }
-                
-                PList::Dictionary rspDict;
-                rspDict.Set("PairRecordData", PList::Data(devrecord->ToBin()));
-                send_plist_pkt(hdr->tag, rspDict.GetPlist());
+                p_rsp = plist_new_dict();
+                {
+                    char *plistbin = NULL;
+                    uint32_t plistbin_len = 0;
+                    cleanup([&]{
+                        safeFreeCustom(plistbin, plist_to_bin_free);
+                    });
+                    plist_to_bin(p_devrecord, &plistbin, &plistbin_len);
+                    plist_dict_set_item(p_rsp, "PairRecordData", plist_new_data(plistbin, plistbin_len));
+                }
+                send_plist_pkt(hdr->tag, p_rsp);
                 return;
             } else if (message == "SavePairRecord") {
-                PList::Integer *pDevID = nullptr;
-                PList::String *pRecord_id = nullptr;
-                PList::Data *pPairRecord = nullptr;
-                std::string record_id;
-                std::vector<char> pairRecord;
-                constexpr const char bplist[] = "bplist00";
-                bool isBinaryPlist = true;
-                PList::Dictionary *pRecordData = nullptr;
+                plist_t p_parsedPairRecord = NULL;
                 cleanup([&]{
-                    if (pRecordData) {
-                        delete pRecordData;
-                    }
+                    safeFreeCustom(p_parsedPairRecord, plist_free);
                 });
+                const char *pairRecord = NULL;
+                uint64_t pairRecord_len = 0;
+                plist_t p_pairRecord = NULL;
+                std::string record_id;
+                
                 // get pair record id
                 try {
-                    assure(pRecord_id = dynamic_cast<PList::String*>((*dict)["PairRecordID"]));
-                    record_id = pRecord_id->GetValue();
-                    assure(pPairRecord = dynamic_cast<PList::Data*>((*dict)["PairRecordData"]));
-                    pairRecord = pPairRecord->GetValue();
+                    const char *str = NULL;
+                    uint64_t str_len = 0;
+                    plist_t p_recordid = NULL;
+                    assure(p_recordid = plist_dict_get_item(p_recieved, "PairRecordID"));
+                    
+                    retassure(str = plist_get_string_ptr(p_recordid, &str_len), "Failed to get str ptr for PairRecordID");
+                    record_id = std::string(str,str_len);
+                    
+                    assure(p_pairRecord = plist_dict_get_item(p_recieved, "PairRecordData"));
                 } catch (tihmstar::exception &e) {
                     error("Reading record id or record data failed!");
                     send_result(hdr->tag, EINVAL);
                     return;
                 }
                 
-                try {
-                    for (int i=0; i<sizeof(bplist)-1; i++) {
-                        //if this throws
-                        if (pairRecord.at(i) != bplist[i]) {
-                            isBinaryPlist = false;
-                            break;
-                        }
-                    }
-                } catch (std::exception &e) {
-                    reterror("pair record too short to be a plist");
-                }
-                if (isBinaryPlist) {
-                    auto somenode = PList::Structure::FromBin(pairRecord);
-                    pRecordData = dynamic_cast<PList::Dictionary*>(somenode);
-                }else{
-                    //yea it's converting to plist and back to string in the next function call,
-                    //but this way we at least check if plist is valid
-                    std::string xmlrecord{pairRecord.begin(),pairRecord.end()};
-                    auto somenode = PList::Structure::FromXml(xmlrecord);
-                    pRecordData = dynamic_cast<PList::Dictionary*>(somenode);
-                }
+                retassure(pairRecord = plist_get_data_ptr(p_pairRecord, &pairRecord_len), "Failed to get data ptr for PairRecordData");
+
+                plist_from_memory(pairRecord, (uint32_t)pairRecord_len, &p_parsedPairRecord);
+                retassure(p_parsedPairRecord, "Failed to plist-parse received PairRecordData");
                 
-                sysconf_set_device_record(record_id.c_str(), pRecordData);
                 
-                assure(pDevID = dynamic_cast<PList::Integer*>((*dict)["DeviceID"]));
-                _muxer->notify_device_paired((int)pDevID->GetValue());
+                sysconf_set_device_record(record_id.c_str(), p_parsedPairRecord);
+                
+                {
+                    plist_t p_intval = NULL;
+                    uint64_t intval = 0;
+                    
+                    assure(p_intval = plist_dict_get_item(p_recieved, "DeviceID"));
+                    assure(plist_get_node_type(p_intval) == PLIST_UINT);
+                    
+                    plist_get_uint_val(p_intval, &intval);
+                    _muxer->notify_device_paired((int)intval);
+                }
                 
                 send_result(hdr->tag, RESULT_OK);
                 return;
             } else if (message == "DeletePairRecord") {
-                PList::String *pRecord_id = nullptr;
                 std::string record_id;
                 
                 // get pair record id
                 try {
-                    assure(pRecord_id = dynamic_cast<PList::String*>((*dict)["PairRecordID"]));
-                    record_id = pRecord_id->GetValue();
+                    const char *str = NULL;
+                    uint64_t str_len = 0;
+                    plist_t p_recordid = NULL;
+                    
+                    assure(p_recordid = plist_dict_get_item(p_recieved, "PairRecordID"));
+                    
+                    retassure(str = plist_get_string_ptr(p_recordid, &str_len), "Failed to get str ptr for PairRecordID");
+                    record_id = std::string(str,str_len);
                 } catch (tihmstar::exception &e) {
                     error("Reading record id failed!");
                     send_result(hdr->tag, EINVAL);

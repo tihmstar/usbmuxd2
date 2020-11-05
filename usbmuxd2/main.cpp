@@ -99,7 +99,7 @@ static void set_signal_handlers(void){
  */
 static int daemonize(void) noexcept{
     int err = 0;
-    int res = 0;
+    ssize_t res = 0;
     pid_t pid = 0;
     pid_t sid = 0;
     int pfd[2] = {};

@@ -390,40 +390,55 @@ void Muxer::start_connect(int device_id, uint16_t dport, Client *cli){
 
 
 void Muxer::send_deviceList(Client *client, uint32_t tag){
-    PList::Dictionary rsp;
-    
-    PList::Array devs;
+    plist_t p_rsp = NULL;
+    plist_t p_devarr = NULL;
+    cleanup([&]{
+        safeFreeCustom(p_rsp, plist_free);
+        safeFreeCustom(p_devarr, plist_free);
+    });
+    assure(p_rsp = plist_new_dict());
+    assure(p_devarr = plist_new_array());
     
     _devices.addMember();
     for (Device *dev : _devices._elems) {
-        devs.Append(getDevicePlist(dev).Clone());
+        plist_array_append_item(p_devarr, getDevicePlist(dev));
     }
     _devices.delMember();
 
-    rsp.Set("DeviceList", devs);
+    plist_dict_set_item(p_rsp, "DeviceList", p_devarr); p_devarr = NULL; //transfer ownership
     
-    client->send_plist_pkt(tag, rsp.GetPlist());
+    client->send_plist_pkt(tag, p_rsp);
 }
 
 void Muxer::send_listenerList(Client *client, uint32_t tag){
-    PList::Dictionary rsp;
-    
-    PList::Array clis;
+    plist_t p_rsp = NULL;
+    plist_t p_cliarr = NULL;
+    cleanup([&]{
+        safeFreeCustom(p_rsp, plist_free);
+        safeFreeCustom(p_cliarr, plist_free);
+    });
+    assure(p_rsp = plist_new_dict());
+    assure(p_cliarr = plist_new_array());
+
     
     _clients.addMember();
     for (Client *c : _clients._elems) {
-        clis.Append(getClientPlist(c).Clone());
+        plist_array_append_item(p_cliarr, getClientPlist(c));
     }
     _clients.delMember();
 
-    rsp.Set("ListenerList", clis);
+    plist_dict_set_item(p_rsp, "ListenerList", p_cliarr); p_cliarr = NULL; //transfer ownership
     
-    client->send_plist_pkt(tag, rsp.GetPlist());
+    client->send_plist_pkt(tag, p_rsp);
 }
 
 #pragma mark notification
 void Muxer::notify_device_add(Device *dev) noexcept{
     debug("notify_device_add(%p)",dev);
+    plist_t p_rsp = NULL;
+    cleanup([&]{
+        safeFreeCustom(p_rsp, plist_free);
+    });
     
     _devices.addMember();
     if (std::find(_devices._elems.begin(), _devices._elems.end(), dev) == _devices._elems.end()) {
@@ -431,16 +446,15 @@ void Muxer::notify_device_add(Device *dev) noexcept{
         _devices.delMember();
         return;
     }
-
-    PList::Dictionary rsp = getDevicePlist(dev);
     
+    p_rsp = getDevicePlist(dev);
     _devices.delMember();
 
     _clients.addMember();
     for (Client *c : _clients._elems){
         if (c->_isListening) {
             try {
-                c->send_plist_pkt(0, rsp.GetPlist());
+                c->send_plist_pkt(0, p_rsp);
             } catch (...) {
                 //we don't care if this fails
             }
@@ -450,16 +464,20 @@ void Muxer::notify_device_add(Device *dev) noexcept{
 }
 
 void Muxer::notify_device_remove(int deviceID) noexcept{
-    PList::Dictionary rsp;
+    plist_t p_rsp = NULL;
+    cleanup([&]{
+        safeFreeCustom(p_rsp, plist_free);
+    });
     
-    rsp.Set("MessageType", PList::String("Detached"));
-    rsp.Set("DeviceID", PList::Integer(deviceID));
+    p_rsp = plist_new_dict();
+    plist_dict_set_item(p_rsp, "MessageType", plist_new_string("Detached"));
+    plist_dict_set_item(p_rsp, "DeviceID", plist_new_uint(deviceID));
     
     _clients.addMember();
     for (Client *c : _clients._elems){
         if (c->_isListening) {
             try {
-                c->send_plist_pkt(0, rsp.GetPlist());
+                c->send_plist_pkt(0, p_rsp);
             } catch (...) {
                 //we don't care if this fails
             }
@@ -470,16 +488,20 @@ void Muxer::notify_device_remove(int deviceID) noexcept{
 
 
 void Muxer::notify_device_paired(int deviceID) noexcept{
-    PList::Dictionary rsp;
-    
-    rsp.Set("MessageType", PList::String("Paired"));
-    rsp.Set("DeviceID", PList::Integer(deviceID));
-    
+    plist_t p_rsp = NULL;
+    cleanup([&]{
+        safeFreeCustom(p_rsp, plist_free);
+    });
+
+    p_rsp = plist_new_dict();
+    plist_dict_set_item(p_rsp, "MessageType", plist_new_string("Paired"));
+    plist_dict_set_item(p_rsp, "DeviceID", plist_new_uint(deviceID));
+
     _clients.addMember();
     for (Client *c : _clients._elems){
         if (c->_isListening) {
             try {
-                c->send_plist_pkt(0, rsp.GetPlist());
+                c->send_plist_pkt(0, p_rsp);
             } catch (...) {
                 //we don't care if this fails
             }
@@ -497,9 +519,13 @@ void Muxer::notify_alldevices(Client *cli) noexcept{
     
     _devices.addMember();
     for (Device *d : _devices._elems){
-        PList::Dictionary rsp = getDevicePlist(d);
+        plist_t p_rsp = NULL;
+        cleanup([&]{
+            safeFreeCustom(p_rsp, plist_free);
+        });
+        p_rsp = getDevicePlist(d);
         try {
-            cli->send_plist_pkt(0, rsp.GetPlist());
+            cli->send_plist_pkt(0, p_rsp);
         } catch (...) {
             //we don't care if this fails
         }
@@ -509,66 +535,83 @@ void Muxer::notify_alldevices(Client *cli) noexcept{
 
 
 #pragma mark Static
-PList::Dictionary Muxer::getDevicePlist(Device *dev) noexcept{
-    PList::Dictionary devP;
-    PList::Dictionary props;
+plist_t Muxer::getDevicePlist(Device *dev) noexcept{
+    plist_t p_devp = NULL;
+    plist_t p_props = NULL;
+    cleanup([&]{
+        safeFreeCustom(p_devp, plist_free);
+        safeFreeCustom(p_props, plist_free);
+    });
     
-    devP.Set("DeviceID", PList::Integer(dev->_id));
-    devP.Set("MessageType", PList::String("Attached"));
+    p_devp = plist_new_dict();
+    p_props = plist_new_dict();
+
+    plist_dict_set_item(p_devp, "MessageType", plist_new_string("Attached"));
+    plist_dict_set_item(p_devp, "DeviceID", plist_new_uint(dev->_id));
+
     
-    props.Set("DeviceID", PList::Integer(dev->_id));
+    plist_dict_set_item(p_props, "DeviceID", plist_new_uint(dev->_id));
+
 
     if (dev->_conntype == Device::MUXCONN_USB) {
         USBDevice *usbdev = (USBDevice*)dev;
-        props.Set("ConnectionSpeed", PList::Integer(usbdev->_speed));
-        props.Set("ConnectionType", PList::String("USB"));
-        props.Set("LocationID", PList::Integer(usbdev->usb_location()));
-        props.Set("ProductID", PList::Integer(usbdev->_pid));
+        plist_dict_set_item(p_props, "ConnectionSpeed", plist_new_uint(usbdev->_speed));
+        plist_dict_set_item(p_props, "ConnectionType", plist_new_string("USB"));
+        plist_dict_set_item(p_props, "LocationID", plist_new_uint(usbdev->usb_location()));
+        plist_dict_set_item(p_props, "ProductID", plist_new_uint(usbdev->_pid));
     }else{
         WIFIDevice *wifidev = (WIFIDevice*)dev;
-        props.Set("ConnectionType", PList::String("Network"));
-        props.Set("EscapedFullServiceName", PList::String(wifidev->_serviceName));
+        plist_dict_set_item(p_props, "ConnectionType", plist_new_string("Network"));
+        plist_dict_set_item(p_props, "EscapedFullServiceName", plist_new_string(wifidev->_serviceName.c_str()));
 
         if (wifidev->_ipaddr.find(":") == std::string::npos){
             //this is an IPv4 addr
-            #warning TODO this is really ugly! :(
-            std::vector<char> vbuf;
+            #warning TODO this is ugly! :(
             char buf[0x80] = {};
             ((uint32_t*)buf)[0] = 0x0210;
             ((uint32_t*)buf)[1] = inet_addr(wifidev->_ipaddr.c_str());
-            for (int i=0; i<sizeof(buf);i++){
-                vbuf.push_back(buf[i]);
-            }
-            props.Set("NetworkAddress", PList::Data(vbuf));
-
+            plist_dict_set_item(p_props, "NetworkAddress", plist_new_data(buf, sizeof(buf)));
         }else{
 #warning TODO add support for ipv6 NetworkAddress (data)
         }
 #warning TODO missing fields: InterfaceIndex (integer)            
 
     }
-    props.Set("SerialNumber", PList::String(dev->getSerial()));
-    devP.Set("Properties", props);
-    return devP;
+    plist_dict_set_item(p_props, "SerialNumber", plist_new_string(dev->getSerial()));
+    plist_dict_set_item(p_devp, "Properties", p_props);p_props = NULL; // transfer ownership
+    
+    {
+        plist_t ret = p_devp; p_devp = NULL;
+        return ret;
+    }
 }
 
-PList::Dictionary Muxer::getClientPlist(Client *client) noexcept{
-    PList::Dictionary cliP;
-    std::string idstring;
+plist_t Muxer::getClientPlist(Client *client) noexcept{
+    plist_t p_ret = NULL;
+    cleanup([&]{
+        safeFreeCustom(p_ret, plist_free);
+    });
     
     const Client::cinfo info = client->getClientInfo();
     
-    cliP.Set("Blacklisted", PList::Boolean(false));
-    cliP.Set("BundleID", PList::String(info.bundleID));
-    cliP.Set("ConnType", PList::Integer((uint64_t)0));
+    p_ret = plist_new_dict();
     
-    idstring = std::to_string(client->_number) +"-";
-    idstring += info.progName;
-    
-    cliP.Set("ID String", PList::String(idstring));
-    cliP.Set("ProgName", PList::String(info.progName));
-    
-    cliP.Set("kLibUSBMuxVersion", PList::Integer(info.kLibUSBMuxVersion));
-    
-    return cliP;
+    plist_dict_set_item(p_ret,"Blacklisted", plist_new_bool(0));
+    plist_dict_set_item(p_ret,"BundleID", plist_new_string(info.bundleID));
+    plist_dict_set_item(p_ret,"ConnType", plist_new_uint(0));
+
+    {
+        std::string idstring;
+        idstring = std::to_string(client->_number) +"-";
+        idstring += info.progName;
+
+        plist_dict_set_item(p_ret,"ID String", plist_new_string(idstring.c_str()));
+    }
+    plist_dict_set_item(p_ret,"ProgName", plist_new_string(info.progName));
+
+    plist_dict_set_item(p_ret,"kLibUSBMuxVersion", plist_new_uint(info.kLibUSBMuxVersion));
+    {
+        plist_t ret = p_ret; p_ret = NULL;
+        return ret;
+    }
 }

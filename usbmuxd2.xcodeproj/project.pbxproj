@@ -15,8 +15,6 @@
 		874FAB692551BDCF002AD27A /* libgeneral.0.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 874FAB672551BDCF002AD27A /* libgeneral.0.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		874FAB6B2551BE12002AD27A /* libplist-2.0.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 874FAB6A2551BE12002AD27A /* libplist-2.0.3.dylib */; };
 		874FAB6C2551BE12002AD27A /* libplist-2.0.3.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 874FAB6A2551BE12002AD27A /* libplist-2.0.3.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		874FAB6E2551BE2A002AD27A /* libplist++-2.0.3.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 874FAB6D2551BE2A002AD27A /* libplist++-2.0.3.dylib */; };
-		874FAB6F2551BE2A002AD27A /* libplist++-2.0.3.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 874FAB6D2551BE2A002AD27A /* libplist++-2.0.3.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		874FAB712551BEA8002AD27A /* libusb-1.0.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 874FAB702551BEA8002AD27A /* libusb-1.0.0.dylib */; };
 		874FAB722551BEA8002AD27A /* libusb-1.0.0.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 874FAB702551BEA8002AD27A /* libusb-1.0.0.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		8756C265230831FB001F0753 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8756C264230831FB001F0753 /* main.cpp */; };
@@ -57,7 +55,6 @@
 				874FAB722551BEA8002AD27A /* libusb-1.0.0.dylib in Embed Libraries */,
 				874FAB692551BDCF002AD27A /* libgeneral.0.dylib in Embed Libraries */,
 				874FAB6C2551BE12002AD27A /* libplist-2.0.3.dylib in Embed Libraries */,
-				874FAB6F2551BE2A002AD27A /* libplist++-2.0.3.dylib in Embed Libraries */,
 			);
 			name = "Embed Libraries";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -123,7 +120,6 @@
 				874FAB712551BEA8002AD27A /* libusb-1.0.0.dylib in Frameworks */,
 				874FAB6B2551BE12002AD27A /* libplist-2.0.3.dylib in Frameworks */,
 				874FAB682551BDCF002AD27A /* libgeneral.0.dylib in Frameworks */,
-				874FAB6E2551BE2A002AD27A /* libplist++-2.0.3.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -16,6 +16,7 @@
 #include <Devices/WIFIDevice.hpp>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/select.h>
 
 
 #ifdef HAVE_WIFI_MDNS

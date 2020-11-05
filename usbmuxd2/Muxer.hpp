@@ -13,7 +13,6 @@
 #include <vector>
 #include <lck_container.h>
 #include <plist/plist.h>
-#include <plist/plist++.h>
 #include <set>
 #include <Device.hpp>
 #include <Event.hpp>
@@ -77,8 +76,8 @@ public:
     void notify_alldevices(Client *cli) noexcept;
     
     //---- Static ----
-    static PList::Dictionary getDevicePlist(Device *dev) noexcept;
-    static PList::Dictionary getClientPlist(Client *client) noexcept;
+    static plist_t getDevicePlist(Device *dev) noexcept;
+    static plist_t getClientPlist(Client *client) noexcept;
 };
 
 
