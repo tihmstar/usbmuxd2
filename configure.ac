@@ -189,7 +189,7 @@ Configuration for $PACKAGE-$VERSION:
   install prefix ..........: $prefix
   Debug build .............: $debug_build
   preflight support .......: $with_limd
-  ẂIFI support ............: $with_wifi"
+  ẂIFI support ............: $with_wifi
   activation method .......: $activation_method"
 
 if test "x$with_wifi" = "xyes"; then
