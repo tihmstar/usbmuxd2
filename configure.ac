@@ -58,8 +58,8 @@ AC_ARG_ENABLE([debug],
 
 if test "$debug_build" = true; then
   echo "*** Note: debug build requested ***"
-  CFLAGS+=" -g -D DEBUG=1"
-  CXXFLAGS+=" -g -D DEBUG=1"
+  CFLAGS+=" -g -O0 -DDEBUG=1"
+  CXXFLAGS+=" -g -O0 -DDEBUG=1"
 fi
 
 
