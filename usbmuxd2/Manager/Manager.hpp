@@ -41,6 +41,7 @@ public:
     void startLoop();
     void stopLoop() noexcept;
 
+    virtual void beforeLoop(); //execute before Loop started
     virtual void afterLoop() noexcept; //execute after Loop stopped (e.g. because it died)
     virtual void stopAction() noexcept; //execute when stopping Loop (before waiting for the thread to finish)
 };

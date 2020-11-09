@@ -53,6 +53,12 @@ void Manager::startLoop(){
             _loopThread = new std::thread([&]{
                 _loopState = LOOP_RUNNING;
                 _sleepy.unlock();
+                try {
+                    beforeLoop();
+                } catch (tihmstar::exception &e) {
+                    debug("failed to execute beforeLoop action of exception error=%s code=%d",e.what(),e.code());
+                    _loopState = LOOP_STOPPING;
+                }
                 while (_loopState == LOOP_RUNNING) {
                     try {
                         loopEvent();
@@ -112,6 +118,10 @@ void Manager::stopLoop() noexcept{
         }
         delete _loopThread; _loopThread = nullptr;
     }
+}
+
+void Manager::beforeLoop(){
+    //do nothing by default
 }
 
 void Manager::afterLoop() noexcept{

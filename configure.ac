@@ -11,6 +11,32 @@ AC_CONFIG_MACRO_DIRS([m4])
 AM_PROG_LIBTOOL
 AM_INIT_AUTOMAKE([subdir-objects])
 
+# Checks for programs.
+AC_PROG_CXX
+AC_PROG_CC
+
+# Check for operating system
+AC_MSG_CHECKING([whether we need platform-specific build settings])
+case $host_os in
+  darwin* )
+        CXXFLAGS+=" -stdlib=libc++"
+        ;;
+esac
+
+
+CFLAGS+=" -D CUSTOM_LOGGING=1"
+CXXFLAGS+=" -D CUSTOM_LOGGING=1 -std=c++17"
+CXXFLAGS+=" -D VERSION_COMMIT_COUNT=\\\"$(git rev-list --count HEAD | tr -d '\n')\\\""
+CXXFLAGS+=" -D VERSION_COMMIT_SHA=\\\"$(git rev-parse HEAD | tr -d '\n')\\\""
+LDFLAGS+=" -lstdc++fs"
+
+PKG_CHECK_MODULES(libgeneral, libgeneral >= 32)
+PKG_CHECK_MODULES(libusb, libusb-1.0 >= 1.0.9)
+PKG_CHECK_MODULES(libplist, libplist-2.0 >= 2.2.1)
+PKG_CHECK_MODULES(libimobiledevice, libimobiledevice-1.0 >= 1.2.1, have_limd=yes, have_limd=no)
+PKG_CHECK_MODULES(avahi, avahi-client >= 0.7, have_avahi=yes, have_avahi=no)
+AC_CHECK_LIB(pthread, [pthread_create, pthread_mutex_lock], [AC_SUBST(libpthread_LIBS,[-lpthread])], [AC_MSG_ERROR([libpthread is required to build usbmuxd2])])
+
 AC_ARG_WITH([libimobiledevice],
             [AS_HELP_STRING([--without-libimobiledevice],
             [do not build with libimobiledevice @<:@default=yes@:>@])],
@@ -34,43 +60,7 @@ if test "$debug_build" = true; then
   echo "*** Note: debug build requested ***"
   CFLAGS+=" -g -O0 -DDEBUG=1"
   CXXFLAGS+=" -g -O0 -DDEBUG=1"
-
-  orig_cflags=$CFLAGS
-  orig_cxxflags=$CXXFLAGS
-
-  AC_PROG_CXX
-  AC_PROG_CC
-
-  CFLAGS=$orig_cflags
-  CXXFLAGS=$orig_cxxflags
-else
-  # Checks for programs.
-  AC_PROG_CXX
-  AC_PROG_CC
 fi
-
-
-# Check for operating system
-AC_MSG_CHECKING([whether we need platform-specific build settings])
-case $host_os in
-  darwin* )
-        CXXFLAGS+=" -stdlib=libc++"
-        ;;
-esac
-
-
-CFLAGS+=" -D CUSTOM_LOGGING=1"
-CXXFLAGS+=" -D CUSTOM_LOGGING=1 -std=c++17"
-CXXFLAGS+=" -D VERSION_COMMIT_COUNT=\\\"$(git rev-list --count HEAD | tr -d '\n')\\\""
-CXXFLAGS+=" -D VERSION_COMMIT_SHA=\\\"$(git rev-parse HEAD | tr -d '\n')\\\""
-LDFLAGS+=" -lstdc++fs"
-
-PKG_CHECK_MODULES(libgeneral, libgeneral >= 32)
-PKG_CHECK_MODULES(libusb, libusb-1.0 >= 1.0.9)
-PKG_CHECK_MODULES(libplist, libplist-2.0 >= 2.2.1)
-PKG_CHECK_MODULES(libimobiledevice, libimobiledevice-1.0 >= 1.2.1, have_limd=yes, have_limd=no)
-PKG_CHECK_MODULES(avahi, avahi-client >= 0.7, have_avahi=yes, have_avahi=no)
-AC_CHECK_LIB(pthread, [pthread_create, pthread_mutex_lock], [AC_SUBST(libpthread_LIBS,[-lpthread])], [AC_MSG_ERROR([libpthread is required to build usbmuxd2])])
 
 
 if test "x$with_limd" == "xyes"; then

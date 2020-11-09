@@ -26,6 +26,7 @@ class WIFIDevice : public Device, Manager {
 
     virtual ~WIFIDevice() override;
     virtual void loopEvent() override;
+    virtual void beforeLoop() override;
     virtual void afterLoop() noexcept override;
 
 public:

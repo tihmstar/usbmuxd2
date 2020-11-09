@@ -43,6 +43,10 @@ void WIFIDevice::loopEvent(){
     retassure((hret = heartbeat_send(_hbclient,_hbrsp)) == HEARTBEAT_E_SUCCESS,"[WIFIDevice] failed to send heartbeat");
 }
 
+void WIFIDevice::beforeLoop(){
+    retassure(_hbclient, "Not starting loop, because we don't have a _hbclient");
+}
+
 void WIFIDevice::afterLoop() noexcept{
 	kill();
 }
