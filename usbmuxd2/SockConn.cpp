@@ -97,31 +97,16 @@ void SockConn::kill() noexcept{
     //sets _killInProcess to true and executes if statement if it was false before
     if (!_killInProcess.exchange(true)) {
         
-        {
-        thread_retry:
-            try {
-                std::thread delthread([this](){
-        #ifdef DEBUG
-                    debug("killing SockConn (%p) C=%d D=%d",this,_cfd,_dfd);
-        #else
-                    info("killing SockConn C=%d D=%d",_cfd,_dfd);
-        #endif
-                    delete this;
-                });
-                delthread.detach();
-            } catch (std::system_error &e) {
-                if (e.code() == std::errc::resource_unavailable_try_again) {
-                    error("[THREAD] creating thread threw EAGAIN! retrying in 5 seconds...");
-                    sleep(5);
-                    goto thread_retry;
-                }
-                error("[THREAD] got unhandled std::system_error %d (%s)",e.code().value(),e.exception::what());
-                throw;
-            }
-        }
+        std::thread delthread([this](){
+#ifdef DEBUG
+            debug("killing SockConn (%p) C=%d D=%d",this,_cfd,_dfd);
+#else
+            info("killing SockConn C=%d D=%d",_cfd,_dfd);
+#endif
+            delete this;
+        });
+        delthread.detach();
         
-        
-
     }
 }
 

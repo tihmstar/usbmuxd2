@@ -50,39 +50,26 @@ void Manager::startLoop(){
     assure(!_loopThread);
 
     
-    {
-    thread_retry:
+    _loopThread = new std::thread([&]{
+        _loopState = LOOP_RUNNING;
+        _sleepy.unlock();
         try {
-            _loopThread = new std::thread([&]{
-                _loopState = LOOP_RUNNING;
-                _sleepy.unlock();
-                try {
-                    beforeLoop();
-                } catch (tihmstar::exception &e) {
-                    debug("failed to execute beforeLoop action of exception error=%s code=%d",e.what(),e.code());
-                    _loopState = LOOP_STOPPING;
-                }
-                while (_loopState == LOOP_RUNNING) {
-                    try {
-                        loopEvent();
-                    } catch (tihmstar::exception &e) {
-                        debug("[Manager] breaking Manager-Loop because of exception error=%s code=%d",e.what(),e.code());
-                        break;
-                    }
-                }
-                afterLoop();
-                _loopState = LOOP_STOPPED;
-            });
-        } catch (std::system_error &e) {
-            if (e.code() == std::errc::resource_unavailable_try_again) {
-                error("[THREAD] creating thread threw EAGAIN! retrying in 5 seconds...");
-                sleep(5);
-                goto thread_retry;
-            }
-            error("[THREAD] got unhandled std::system_error %d (%s)",e.code().value(),e.exception::what());
-            throw;
+            beforeLoop();
+        } catch (tihmstar::exception &e) {
+            debug("failed to execute beforeLoop action of exception error=%s code=%d",e.what(),e.code());
+            _loopState = LOOP_STOPPING;
         }
-    }
+        while (_loopState == LOOP_RUNNING) {
+            try {
+                loopEvent();
+            } catch (tihmstar::exception &e) {
+                debug("[Manager] breaking Manager-Loop because of exception error=%s code=%d",e.what(),e.code());
+                break;
+            }
+        }
+        afterLoop();
+        _loopState = LOOP_STOPPED;
+    });
 
     //hangs here iff _loopThread didn't spawn yet
     _sleepy.lock();

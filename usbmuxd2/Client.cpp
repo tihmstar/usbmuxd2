@@ -129,28 +129,15 @@ void Client::kill() noexcept{
     //sets _killInProcess to true and executes if statement if it was false before
     if (!_killInProcess.exchange(true)) {
     
-        {
-        thread_retry:
-            try {
-                std::thread delthread([this](){
-        #ifdef DEBUG
-                    debug("killing client (%p) %d",this,_fd);
-        #else
-                    info("killing client %d",_fd);
-        #endif
-                    delete this;
-                });
-                delthread.detach();
-            } catch (std::system_error &e) {
-                if (e.code() == std::errc::resource_unavailable_try_again) {
-                    error("[THREAD] creating thread threw EAGAIN! retrying in 5 seconds...");
-                    sleep(5);
-                    goto thread_retry;
-                }
-                error("[THREAD] got unhandled std::system_error %d (%s)",e.code().value(),e.exception::what());
-                throw;
-            }
-        }
+        std::thread delthread([this](){
+#ifdef DEBUG
+            debug("killing client (%p) %d",this,_fd);
+#else
+            info("killing client %d",_fd);
+#endif
+            delete this;
+        });
+        delthread.detach();
         
     }
 }
