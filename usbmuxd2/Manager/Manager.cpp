@@ -114,13 +114,13 @@ void Manager::stopLoop() noexcept{
         _loopState.compare_exchange_strong(expected, tobeplaced);
         
         stopAction();
+    }
+    if (_loopThread) {
         try {
             _loopThread->join();
         } catch (...) {
             //pass
         }
-    }
-    if (_loopThread) {
         delete _loopThread; _loopThread = nullptr;
     }
 }
