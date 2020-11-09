@@ -346,7 +346,7 @@ int main(int argc, const char * argv[]) {
     if (lock.l_type != F_UNLCK) {
         cretassure(exit_signal,"Another instance is already running (pid %d). exiting.", lock.l_pid);
 
-        cretassure(lock.l_pid && !kill(lock.l_pid, 0),"Could not determine pid of the other running instance!");
+        cretassure(lock.l_pid,"Could not determine pid of the other running instance!");
 
         notice("Sending signal %d to instance with pid %d", exit_signal, lock.l_pid);
         cretassure(!kill(lock.l_pid, exit_signal),"Could not deliver signal %d to pid %d", exit_signal, lock.l_pid);

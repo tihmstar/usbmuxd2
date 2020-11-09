@@ -22,19 +22,19 @@ Manager::Manager()
 
 
 Manager::~Manager(){
-    debug("[destroying] Manager(%p)",this);
+    debug("[Manager] destroying Manager(%p)",this);
 
     stopLoop();
     assert(_loopState == LOOP_UNINITIALISED || _loopState == LOOP_STOPPED);
 }
 
 void Manager::loopEvent(){
-    reterror("LoopEvent wasn't overwritten. Probably subclass construction failed!");
+    reterror("[Manager] LoopEvent wasn't overwritten. Probably subclass construction failed!");
 }
 
 
 void Manager::startLoop(){
-    retassure(_loopState == LOOP_UNINITIALISED, "loop already initialized");
+    retassure(_loopState == LOOP_UNINITIALISED, "[Manager] loop already initialized");
     cleanup([&]{
         _sleepy.unlock();
     });
@@ -57,7 +57,7 @@ void Manager::startLoop(){
                     try {
                         loopEvent();
                     } catch (tihmstar::exception &e) {
-                        debug("breaking Manager-Loop because of exception error=%s code=%d",e.what(),e.code());
+                        debug("[Manager] breaking Manager-Loop because of exception error=%s code=%d",e.what(),e.code());
                         break;
                     }
                 }

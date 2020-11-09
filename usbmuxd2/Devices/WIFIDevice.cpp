@@ -18,36 +18,29 @@
 #include <sysconf/sysconf.hpp>
 
 WIFIDevice::WIFIDevice(std::string uuid, std::string ipaddr, std::string serviceName, Muxer *mux) 
-: Device(mux,Device::MUXCONN_WIFI), _ipaddr(ipaddr), _serviceName(serviceName), _hbclient(NULL), _hbeat(NULL), _hbrsp(NULL),
+: Device(mux,Device::MUXCONN_WIFI), _ipaddr(ipaddr), _serviceName(serviceName), _hbclient(NULL), _hbrsp(NULL),
 	_idev(NULL)
 {
 	strncpy(_serial, uuid.c_str(), sizeof(_serial));
 }
 
 WIFIDevice::~WIFIDevice() {
+    stopLoop();
     _muxer->delete_device(this);
-	stopLoop();
-	if (_hbclient){
-		heartbeat_client_free(_hbclient);
-    }
-    if (_hbeat){
-		plist_free(_hbeat);
-    }
-    if (_hbrsp){
-		plist_free(_hbrsp);
-    }
-    if (_idev){
-    	idevice_free(_idev);
-    }
+    safeFreeCustom(_hbclient, heartbeat_client_free);
+    safeFreeCustom(_hbrsp, plist_free);
+    safeFreeCustom(_idev, idevice_free);
 }
 
 void WIFIDevice::loopEvent(){
+    plist_t hbeat = NULL;
+    cleanup([&]{
+        safeFreeCustom(hbeat, plist_free);
+    });
     heartbeat_error_t hret = HEARTBEAT_E_SUCCESS;
-	retassure((hret = heartbeat_receive_with_timeout(_hbclient,&_hbeat,15000)) == HEARTBEAT_E_SUCCESS, "failed to recv heartbeat with error=%d",hret);
-    if (_hbeat){
-       plist_free(_hbeat);_hbeat=NULL;
-    }
-    retassure((hret = heartbeat_send(_hbclient,_hbrsp)) == HEARTBEAT_E_SUCCESS,"failed to send heartbeat");
+
+	retassure((hret = heartbeat_receive_with_timeout(_hbclient,&hbeat,15000)) == HEARTBEAT_E_SUCCESS, "[WIFIDevice] failed to recv heartbeat with error=%d",hret);
+    retassure((hret = heartbeat_send(_hbclient,_hbrsp)) == HEARTBEAT_E_SUCCESS,"[WIFIDevice] failed to send heartbeat");
 }
 
 void WIFIDevice::afterLoop() noexcept{
@@ -55,23 +48,15 @@ void WIFIDevice::afterLoop() noexcept{
 }
 
 void WIFIDevice::startLoop(){
-    plist_t polo = NULL;
-    cleanup([&]{
-	    if (polo){
-			plist_free(polo);
-    	}
-
-    });
     heartbeat_error_t hret = HEARTBEAT_E_SUCCESS;
     _loopState = LOOP_STOPPED;
     
-    assure(polo = plist_new_string("Polo"));
     assure(_hbrsp = plist_new_dict());
-    plist_dict_set_item(_hbrsp, "Command", polo);polo = NULL;
-
+    plist_dict_set_item(_hbrsp, "Command", plist_new_string("Polo"));
+    
     assure(!idevice_new_with_options(&_idev,_serial, IDEVICE_LOOKUP_NETWORK));
 
-    retassure((hret = heartbeat_client_start_service(_idev, &_hbclient, "usbmuxd2")) == HEARTBEAT_E_SUCCESS,"Failed to start heartbeat service with error=%d",hret);
+    retassure((hret = heartbeat_client_start_service(_idev, &_hbclient, "usbmuxd2")) == HEARTBEAT_E_SUCCESS,"[WIFIDevice] Failed to start heartbeat service with error=%d",hret);
 
 	_loopState = LOOP_UNINITIALISED;
     Manager::startLoop();
