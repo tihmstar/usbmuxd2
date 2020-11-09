@@ -25,7 +25,10 @@ Manager::~Manager(){
     debug("[Manager] destroying Manager(%p)",this);
 
     stopLoop();
+#ifdef DEBUG
     assert(_loopState == LOOP_UNINITIALISED || _loopState == LOOP_STOPPED);
+    assert(!_loopThread);
+#endif
 }
 
 void Manager::loopEvent(){
@@ -116,6 +119,8 @@ void Manager::stopLoop() noexcept{
         } catch (...) {
             //pass
         }
+    }
+    if (_loopThread) {
         delete _loopThread; _loopThread = nullptr;
     }
 }
