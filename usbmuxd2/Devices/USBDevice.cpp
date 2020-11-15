@@ -288,7 +288,8 @@ void USBDevice::device_data_input(unsigned char *buffer, uint32_t length){
                     connect->handle_input(tcp_header, payload, payload_length);
                 } catch (tihmstar::exception &e) {
                     connect->release();
-                    reterror("failed to handle input on snum=%d device(%d)=%s",dport,_id,_serial);
+                    error("failed to handle input on snum=%d device(%d)=%s with error=%d (%s)",dport,_id,_serial,e.code(),e.what());
+                    throw;
                 }
                 connect->release();
             }else{
