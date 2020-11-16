@@ -10,40 +10,37 @@
 #include "Event.hpp"
 
 Event::Event()
-: _members(0), _curEvent(0), _isDying(false)
+: _members(0), _curSendEvent(0), _curWaitEvent(0), _isDying(false)
 {
     
 }
 
 
 Event::~Event(){
-    std::unique_lock<std::mutex> dm(_m);
+    _m.lock();
     _isDying = true;
-    dm.unlock();
+    _m.unlock();
+    
     while (_members) {
         std::unique_lock<std::mutex> lk(_m);
-        
         _cm.wait(lk, [&]{return !_members;});
-        
-        lk.unlock();
     }
 }
 
 void Event::wait(){
     std::unique_lock<std::mutex> lk(_m);
-    cleanup([&]{
-        lk.unlock();
-    });
-    assure(!_isDying);
-    
     ++_members;
-    
-    uint64_t waitingForEvent = _curEvent+1;
+    assert(!_isDying);
+
+    uint64_t waitingForEvent = _curWaitEvent+1;
     if (waitingForEvent == 0) waitingForEvent++;
-    _cm.notify_all();
-    _cv.wait(lk, [&]{return _curEvent>=waitingForEvent;});
+
+    _cv.wait(lk, [&]{return _curSendEvent>=waitingForEvent;});
+    
+    _curWaitEvent = _curSendEvent;
     
     --_members;
+    _cm.notify_all();
 }
 
 void Event::notifyAll(){
@@ -55,27 +52,10 @@ void Event::notifyAll(){
             delete lk;
         }
     });
-    assure(!_isDying);
+    assert(!_isDying);
     
-    if (_members == 0) {
-//        //if nobody is listening atm, delay the notification to avoid race locks
-//        std::thread bg([this](std::unique_lock<std::mutex> *clk){
-//            ++_members;
-//            _cm.wait(*clk, [this]{return _members > 1;});
-//            --_members;
-//            
-//            if(++_curEvent == 0) ++_curEvent;
-//            _cv.notify_all();
-//
-//            clk->unlock();            
-//            delete clk;
-//        },lk);
-//        doUnlockHere = false;
-//        bg.detach();
-    }else{
-        if(++_curEvent == 0) ++_curEvent;
-        _cv.notify_all();
-    }
+    if(++_curSendEvent == 0) ++_curSendEvent;
+    _cv.notify_all();
 }
 
 uint64_t Event::members() const{

@@ -19,7 +19,8 @@ class Event{
     std::condition_variable _cv;
     std::condition_variable _cm;
     std::atomic<uint64_t> _members;
-    uint64_t _curEvent;
+    uint64_t _curSendEvent;
+    uint64_t _curWaitEvent;
     bool _isDying;
 public:
     Event();

@@ -55,6 +55,8 @@ TCP::~TCP() {
         //
     }
 
+#warning UAF: device might be dead by now
+#warning TODO: add reference counting to Device
     _device->close_connection(_sPort);
     _connState = CONN_DYING;
     _lockCanSend.notifyAll();
