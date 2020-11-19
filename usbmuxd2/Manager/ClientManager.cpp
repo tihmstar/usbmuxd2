@@ -7,7 +7,6 @@
 //
 
 #include "ClientManager.hpp"
-#include "log.h"
 #include <libgeneral/macros.h>
 #include <sys/socket.h>
 #include <sys/un.h>

@@ -7,7 +7,6 @@
 //
 
 #include "Device.hpp"
-#include "log.h"
 #include <libgeneral/macros.h>
 #include <algorithm>
 #include <thread>

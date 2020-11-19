@@ -437,7 +437,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
-					CUSTOM_LOGGING,
+					"CUSTOM_LOGGING=\"\\\"log.h\\\"\"",
 					"HAVE_LIBIMOBILEDEVICE=1",
 					"HAVE_WIFI_SUPPORT=1",
 					"HAVE_WIFI_MDNS=1",

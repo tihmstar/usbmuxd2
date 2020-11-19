@@ -9,7 +9,6 @@
 #include "Manager.hpp"
 #include <libgeneral/macros.h>
 #include <libgeneral/exception.hpp>
-#include "log.h"
 #include <unistd.h>
 #include <system_error>
 

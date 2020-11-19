@@ -7,7 +7,6 @@
 //
 
 #include <iostream>
-#include "log.h"
 #include <libgeneral/macros.h>
 #include "Muxer.hpp"
 #include <future>

@@ -7,7 +7,6 @@
 //
 
 #include "sysconf.hpp"
-#include "log.h"
 #include <libgeneral/macros.h>
 #include <libgeneral/exception.hpp>
 #include <sys/stat.h>

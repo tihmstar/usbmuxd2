@@ -1,4 +1,8 @@
 #!/bin/sh
+
+#cleanup cache for correct versioning when run multiple times
+rm -rf autom4te.cache
+
 gprefix=`which glibtoolize 2>&1 >/dev/null`
 if [ $? -eq 0 ]; then
   glibtoolize --force

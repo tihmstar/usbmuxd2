@@ -11,6 +11,12 @@ AC_CONFIG_MACRO_DIRS([m4])
 AM_PROG_LIBTOOL
 AM_INIT_AUTOMAKE([subdir-objects])
 
+AC_DEFINE([VERSION_COMMIT_COUNT], "m4_esyscmd([git rev-list --count HEAD | tr -d '\n'])", [Git commit count])
+AC_DEFINE([VERSION_COMMIT_SHA], "m4_esyscmd([git rev-parse HEAD | tr -d '\n'])", [Git commit sha])
+AC_SUBST([VERSION_COMMIT_COUNT], ["m4_esyscmd([git rev-list --count HEAD | tr -d '\n'])"])
+AC_SUBST([VERSION_COMMIT_SHA], ["m4_esyscmd([git rev-parse HEAD | tr -d '\n'])"])
+
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
@@ -20,22 +26,25 @@ AC_MSG_CHECKING([whether we need platform-specific build settings])
 case $host_os in
   darwin* )
         CXXFLAGS+=" -stdlib=libc++"
+        have_mdns="yes"
+        ;;
+  *)
+        LDFLAGS+=" -lstdc++fs"
         ;;
 esac
 
 
-CFLAGS+=" -D CUSTOM_LOGGING=1"
-CXXFLAGS+=" -D CUSTOM_LOGGING=1 -std=c++17"
-CXXFLAGS+=" -D VERSION_COMMIT_COUNT=\\\"$(git rev-list --count HEAD | tr -d '\n')\\\""
-CXXFLAGS+=" -D VERSION_COMMIT_SHA=\\\"$(git rev-parse HEAD | tr -d '\n')\\\""
-LDFLAGS+=" -lstdc++fs"
+CFLAGS+=' -DCUSTOM_LOGGING="\"log.h\""'
+CXXFLAGS+=' -DCUSTOM_LOGGING="\"log.h\""'
 
-PKG_CHECK_MODULES(libgeneral, libgeneral >= 32)
+CXXFLAGS+=" -std=c++17"
+
+
+PKG_CHECK_MODULES(libgeneral, libgeneral >= 39)
 PKG_CHECK_MODULES(libusb, libusb-1.0 >= 1.0.9)
 PKG_CHECK_MODULES(libplist, libplist-2.0 >= 2.2.1)
 PKG_CHECK_MODULES(libimobiledevice, libimobiledevice-1.0 >= 1.2.1, have_limd=yes, have_limd=no)
 PKG_CHECK_MODULES(avahi, avahi-client >= 0.7, have_avahi=yes, have_avahi=no)
-AC_CHECK_LIB(pthread, [pthread_create, pthread_mutex_lock], [AC_SUBST(libpthread_LIBS,[-lpthread])], [AC_MSG_ERROR([libpthread is required to build usbmuxd2])])
 
 AC_ARG_WITH([libimobiledevice],
             [AS_HELP_STRING([--without-libimobiledevice],
@@ -75,8 +84,11 @@ if test "x$with_limd" == "xyes"; then
         AC_DEFINE(HAVE_WIFI_SUPPORT, 1, [Define if you have wifi support])
         AC_SUBST(avahi_CFLAGS)
         AC_SUBST(avahi_LIBS)
+      elif test "x$have_mdns" = "xyes"; then
+        AC_DEFINE(HAVE_WIFI_MDNS, 1, [Define if you have mDNS])
+        AC_DEFINE(HAVE_WIFI_SUPPORT, 1, [Define if you have wifi support])
       else
-        AC_MSG_ERROR([wifi support requested but avahi-client could not be found])
+        AC_MSG_ERROR([wifi support requested but no wifi backend could not be found])
       fi
     else
       echo "*** Note: wifi support has been disabled ***"
@@ -188,12 +200,14 @@ Configuration for $PACKAGE-$VERSION:
   install prefix ..........: $prefix
   Debug build .............: $debug_build
   preflight support .......: $with_limd
-  ẂIFI support ............: $with_wifi
+  WIFI support ............: $with_wifi
   activation method .......: $activation_method"
 
 if test "x$with_wifi" = "xyes"; then
   if test "x$have_avahi" = "xyes"; then
-    echo "  ẂIFI backend ............: avahi"
+    echo "  WIFI backend ............: avahi"
+  elif test "x$have_mdns" = "xyes"; then
+    echo "  WIFI backend ............: mDNS"
   fi
 fi
 

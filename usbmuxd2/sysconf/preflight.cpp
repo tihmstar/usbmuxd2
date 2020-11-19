@@ -8,7 +8,6 @@
 
 #include "preflight.hpp"
 
-#include "log.h"
 #include <libgeneral/macros.h>
 #include <Device.hpp>
 #include <sysconf/sysconf.hpp>
