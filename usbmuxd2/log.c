@@ -53,9 +53,9 @@ void usbmuxd_log(enum loglevel level, const char *fmt, ...){
     
     
     //don't log if below log level. Note: this is not an error
-    assure(level <= log_level);
+    cassure(level <= log_level);
     
-    assure(fs = malloc(20 + strlen(fmt)));
+    cassure(fs = malloc(20 + strlen(fmt)));
     
     
     if(log_syslog) {
