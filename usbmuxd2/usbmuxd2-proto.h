@@ -2,8 +2,7 @@
 //  usbmuxd2-proto.h
 //  usbmuxd2
 //
-//  Created by tihmstar on 10.06.19.
-//  Copyright © 2019 tihmstar. All rights reserved.
+//  Created by tihmstar on 18.12.20.
 //
 
 #ifndef usbmuxd2_proto_h
@@ -53,4 +52,5 @@ extern "C"{
 #ifdef __cplusplus
 };
 #endif
+
 #endif /* usbmuxd2_proto_h */

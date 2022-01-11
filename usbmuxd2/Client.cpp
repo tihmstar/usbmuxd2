@@ -2,36 +2,29 @@
 //  Client.cpp
 //  usbmuxd2
 //
-//  Created by tihmstar on 18.08.19.
-//  Copyright © 2019 tihmstar. All rights reserved.
+//  Created by tihmstar on 11.12.20.
 //
 
 #include "Client.hpp"
-#include <log.h>
 #include <libgeneral/macros.h>
 #include <sys/socket.h>
-#include <sys/un.h>
-#include <arpa/inet.h>
-#include <stdlib.h>
+#include <netinet/in.h>
 #include <netinet/tcp.h>
+#include "Muxer.hpp"
 #include <unistd.h>
-#include <sysconf/sysconf.hpp>
-#include <system_error>
+#include "sysconf.hpp"
 
+#pragma mark Client
 
-Client::Client(Muxer *mux, int fd, uint64_t number)
-    :  _muxer(mux), _recvbuffer(NULL), _info{}, _killInProcess(false), _wlock{}, _recvbufferSize(0), _number(number), _fd(fd),
-        _proto_version(0), _isListening(false)
+Client::Client(std::shared_ptr<gref_Muxer> mux, int fd, uint64_t number)
+: _selfref{}, _mux(mux), _fd(fd), _number(number), _recvbuffer(NULL), _recvBytesCnt(0), _proto_version(0),
+    _isListening(false), _info{}
 {
-    debug("[allocing] client (%p) %d",this,_fd);
+    debug("[Client] initializing Client %d",_fd);
     const int bufsize = Client::bufsize;
     constexpr int yes = 1;
 
-
-    assure(!pthread_mutex_init(&_wlock, 0));
-    
-    _recvbuffer = (char*)malloc(bufsize);
-    hdr = (usbmuxd_header*)_recvbuffer;
+    assure(_recvbuffer = (char*)malloc(bufsize));
     
     if (setsockopt(_fd, SOL_SOCKET, SO_SNDBUF, &bufsize, sizeof(int)) == -1) {
         warning("Could not set send buffer for client socket");
@@ -48,34 +41,33 @@ Client::Client(Muxer *mux, int fd, uint64_t number)
 }
 
 Client::~Client(){
-#ifdef DEBUG
-    if (!_killInProcess) {
-        error("THIS DESTRUCTOR IS NOT MEANT TO BE CALLED OTHER THAN THROUGH kill()!!");
-    }
-#endif
-    
-    _muxer->delete_client(this); //triggers kill, but that's fine
-    safeFree(_info.bundleID);
-    safeFree(_info.clientVersionString);
-    safeFree(_info.progName);
-    
-    if (_fd>0) {
-        int cfd = _fd; _fd = -1;
-        close(cfd);
-    }
+    debug("[Client] destroying Client %d",_fd);
     stopLoop();
+    
+    (*_mux)->delete_client(_fd);
 
+    safeClose(_fd);
     safeFree(_recvbuffer);
-    debug("[deleted] client (%p) %d",this,_fd);
+//    safeFree(_info.bundleID);
+//    safeFree(_info.clientVersionString);
+//    safeFree(_info.progName);
+    
 }
 
+void Client::stopAction() noexcept{
+    if (_fd > 0) shutdown(_fd, SHUT_RDWR);
+}
+
+
 void Client::loopEvent(){
-    _recvbufferSize = 0;
+    _recvBytesCnt = 0;
     try {
         recv_data();
     } catch (tihmstar::exception &e) {
         error("failed to recv_data on client %d with error=%s code=%d",_fd,e.what(),e.code());
-        this->kill(); //safe to call multiple times
+#ifdef DEBUG
+        e.dump();
+#endif
         throw; //immediately terminate this thread
     }
 }
@@ -99,58 +91,35 @@ void Client::update_client_info(const plist_t dict){
     }
 }
 
+
 void Client::readData(){
     ssize_t got = 0;
-    got = recv(_fd, _recvbuffer+_recvbufferSize, Client::bufsize-_recvbufferSize, 0);
+    got = recv(_fd, _recvbuffer+_recvBytesCnt, Client::bufsize-_recvBytesCnt, 0);
     if (got == 0) {
         reterror("client %d disconnected!",_fd);
     }
     assure(got > 0);
-    _recvbufferSize+=got;
+    _recvBytesCnt+=got;
 }
 
-void Client::recv_data(){    
+void Client::recv_data(){
+    const usbmuxd_header *hdr = (const usbmuxd_header*)_recvbuffer;
     readData();
     
-    if (_recvbufferSize < sizeof(usbmuxd_header)) {
+    if (_recvBytesCnt < sizeof(usbmuxd_header)) {
         readData();
-        retassure(_recvbufferSize >= sizeof(struct usbmuxd_header), "message is too short for header");
+        retassure(_recvBytesCnt >= sizeof(struct usbmuxd_header), "message is too short for header");
     }
     
-    while(_recvbufferSize < hdr->length) {
+    while(_recvBytesCnt < hdr->length) {
         readData();
-        retassure(_recvbufferSize<Client::bufsize, "no more space to read");
+        retassure(_recvBytesCnt<Client::bufsize, "no more space to read");
     }
     
     processData(hdr);
 }
 
-void Client::kill() noexcept{
-    //sets _killInProcess to true and executes if statement if it was false before
-    if (!_killInProcess.exchange(true)) {
-    
-        std::thread delthread([this](){
-#ifdef DEBUG
-            debug("killing client (%p) %d",this,_fd);
-#else
-            info("killing client %d",_fd);
-#endif
-            delete this;
-        });
-        delthread.detach();
-        
-    }
-}
-
-void Client::processData(usbmuxd_header *hdr){
-    plist_t p_recieved = NULL;
-    cleanup([&]{
-        safeFreeCustom(p_recieved, plist_free);
-    });
-    const char *payload = NULL; //not alloced
-    const struct usbmuxd_connect_request *conn_req = NULL; //not allocated
-    
-    uint32_t payload_size = 0;
+void Client::processData(const usbmuxd_header *hdr){
     uint16_t portnum = 0;
     uint32_t device_id = 0;
     
@@ -163,16 +132,23 @@ void Client::processData(usbmuxd_header *hdr){
         send_result(hdr->tag, RESULT_BADVERSION);
         return;
     }
-    
+
     switch(hdr->message) {
         case MESSAGE_PLIST:
         {
+            plist_t p_recieved = NULL;
+            cleanup([&]{
+                safeFreeCustom(p_recieved, plist_free);
+            });
+            const char *payload = NULL; //not alloced
+            uint32_t payload_size = 0;
+            
             _proto_version = 1;
             payload = (char*)(hdr) + sizeof(struct usbmuxd_header);
             payload_size = hdr->length - sizeof(struct usbmuxd_header);
             
             plist_from_xml(payload, payload_size, &p_recieved);
-            
+
             {
                 plist_t p_messageType = NULL;
                 const char *str = NULL;
@@ -186,14 +162,14 @@ void Client::processData(usbmuxd_header *hdr){
             }
             
             update_client_info(p_recieved);
-            
+
             if (message == "Listen") {
                 goto PLIST_CLIENT_LISTEN_LOC;
             } else if (message == "Connect") {
-                plist_t p_intval = NULL;
                 
                 // get device id
                 try {
+                    plist_t p_intval = NULL;
                     uint64_t tmpDeviceID = 0;
                     assure(p_intval = plist_dict_get_item(p_recieved, "DeviceID"));
                     assure(plist_get_node_type(p_intval) == PLIST_UINT);
@@ -208,6 +184,7 @@ void Client::processData(usbmuxd_header *hdr){
                 
                 // get port number
                 try {
+                    plist_t p_intval = NULL;
                     uint64_t tmpPortNumber = 0;
                     assure(p_intval = plist_dict_get_item(p_recieved, "PortNumber"));
                     assure(plist_get_node_type(p_intval) == PLIST_UINT);
@@ -222,7 +199,7 @@ void Client::processData(usbmuxd_header *hdr){
                 
                 goto PLIST_CLIENT_CONNECTION_LOC;
             } else if (message == "ListDevices") {
-                _muxer->send_deviceList(this, hdr->tag);
+                (*_mux)->send_deviceList(_selfref.lock(), hdr->tag);
                 return;
             } else if (message == "ReadBUID") {
                 plist_t p_rsp = NULL;
@@ -266,6 +243,7 @@ void Client::processData(usbmuxd_header *hdr){
                     send_result(hdr->tag, ENOENT);
                     return;
                 }
+                
                 p_rsp = plist_new_dict();
                 {
                     char *plistbin = NULL;
@@ -283,8 +261,6 @@ void Client::processData(usbmuxd_header *hdr){
                 cleanup([&]{
                     safeFreeCustom(p_parsedPairRecord, plist_free);
                 });
-                const char *pairRecord = NULL;
-                uint64_t pairRecord_len = 0;
                 plist_t p_pairRecord = NULL;
                 std::string record_id;
                 
@@ -305,11 +281,14 @@ void Client::processData(usbmuxd_header *hdr){
                     return;
                 }
                 
-                retassure(pairRecord = plist_get_data_ptr(p_pairRecord, &pairRecord_len), "Failed to get data ptr for PairRecordData");
-
-                plist_from_memory(pairRecord, (uint32_t)pairRecord_len, &p_parsedPairRecord);
+                {
+                    const char *pairRecord = NULL;
+                    uint64_t pairRecord_len = 0;
+                    retassure(pairRecord = plist_get_data_ptr(p_pairRecord, &pairRecord_len), "Failed to get data ptr for PairRecordData");
+                    plist_from_memory(pairRecord, (uint32_t)pairRecord_len, &p_parsedPairRecord);
+                }
                 retassure(p_parsedPairRecord, "Failed to plist-parse received PairRecordData");
-                
+
                 
                 sysconf_set_device_record(record_id.c_str(), p_parsedPairRecord);
                 
@@ -321,7 +300,7 @@ void Client::processData(usbmuxd_header *hdr){
                     assure(plist_get_node_type(p_intval) == PLIST_UINT);
                     
                     plist_get_uint_val(p_intval, &intval);
-                    _muxer->notify_device_paired((int)intval);
+                    (*_mux)->notify_device_paired((int)intval);
                 }
                 
                 send_result(hdr->tag, RESULT_OK);
@@ -349,7 +328,7 @@ void Client::processData(usbmuxd_header *hdr){
                 return;
             }else if (message == "ListListeners") {
 #warning UNTESTED
-                _muxer->send_listenerList(this, hdr->tag);
+                (*_mux)->send_listenerList(_selfref.lock(), hdr->tag);
                 return;
             }else{
                 error("Unexpected command '%s' received!", message.c_str());
@@ -361,10 +340,14 @@ void Client::processData(usbmuxd_header *hdr){
         case MESSAGE_LISTEN:
             goto PLIST_CLIENT_LISTEN_LOC;
         case MESSAGE_CONNECT:
+        {
+            const struct usbmuxd_connect_request *conn_req = NULL; //not allocated
+            
             conn_req = (usbmuxd_connect_request*)hdr;
             portnum = conn_req->port;
             device_id = conn_req->device_id;
             goto PLIST_CLIENT_CONNECTION_LOC;
+        }
         default:
             error("Client %d invalid command %d", _fd, hdr->message);
             send_result(hdr->tag, RESULT_BADCOMMAND);
@@ -376,7 +359,7 @@ PLIST_CLIENT_CONNECTION_LOC:
     debug("Client %d connection request to device %d port %d", _fd, device_id, portnum);
     try {
         //transfer socket ownership to device!
-        _muxer->start_connect(device_id, portnum, this);
+        (*_mux)->start_connect(device_id, portnum, _selfref.lock());
     } catch (tihmstar::exception &e) {
         send_result(hdr->tag, RESULT_CONNREFUSED);
         return;
@@ -387,54 +370,45 @@ PLIST_CLIENT_LISTEN_LOC:
     send_result(hdr->tag, RESULT_OK);
     debug("Client %d now LISTENING", _fd);
     _isListening = true;
-    _muxer->notify_alldevices(this); //inform client about all connected devices
+    (*_mux)->notify_alldevices(_selfref.lock()); //inform client about all connected devices
     return;
 }
 
 void Client::writeData(struct usbmuxd_header *hdr, void *buf, size_t buflen){
-    ssize_t sent = 0;
-    bool didGetLock = false;
+    std::unique_lock<std::mutex> ul(_wlock);
     
-    cleanup([&]{ //cleanup only code
-        if (didGetLock)//unlock mutex if we locked it!
-            pthread_mutex_unlock(&_wlock);
-    });
-    
-    assure(!pthread_mutex_lock(&_wlock)); didGetLock = true;
-    
-    assure((sent = send(_fd, hdr, sizeof(usbmuxd_header), 0)) == sizeof(usbmuxd_header));
-    assure((sent = send(_fd, buf, buflen, 0)) == buflen);
+    assure(send(_fd, hdr, sizeof(usbmuxd_header), 0) == sizeof(usbmuxd_header));
+    assure(send(_fd, buf, buflen, 0) == buflen);
 }
 
 void Client::send_pkt(uint32_t tag, enum usbmuxd_msgtype msg, void *payload, int payload_length){
-    struct usbmuxd_header hdr;
-    hdr.version = _proto_version;
-    hdr.length = sizeof(hdr) + payload_length;
-    hdr.message = msg;
-    hdr.tag = tag;
+    struct usbmuxd_header hdr{
+        .length = (uint32_t)(sizeof(hdr) + payload_length),
+        .version = _proto_version,
+        .message = msg,
+        .tag = tag
+    };
     debug("send_pkt fd %d tag %d msg %d payload_length %d", _fd, tag, msg, payload_length);
     writeData(&hdr, payload, payload_length);
 }
 
 void Client::send_plist_pkt(uint32_t tag, plist_t plist){
     char *xml = NULL;
-    uint32_t xmlsize = 0;
-    cleanup([&](){ //cleanup only code
+    cleanup([&]{
         safeFree(xml);
     });
-    
+    uint32_t xmlsize = 0;
+
     plist_to_xml(plist, &xml, &xmlsize);
     send_pkt(tag, MESSAGE_PLIST, xml, xmlsize);
 }
 
 void Client::send_result(uint32_t tag, uint32_t result){
-    plist_t dict = NULL;
-    cleanup([&]{
-        if (dict) {
-            plist_free(dict);
-        }
-    });
     if (_proto_version == 1) {
+        plist_t dict = NULL;
+        cleanup([&]{
+            safeFreeCustom(dict, plist_free);
+        });
         /* XML plist packet */
         dict = plist_new_dict();
         plist_dict_set_item(dict, "MessageType", plist_new_string("Result"));

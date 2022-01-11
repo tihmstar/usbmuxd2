@@ -2,8 +2,7 @@
 //  ClientManager.cpp
 //  usbmuxd2
 //
-//  Created by tihmstar on 17.08.19.
-//  Copyright © 2019 tihmstar. All rights reserved.
+//  Created by tihmstar on 18.12.20.
 //
 
 #include "ClientManager.hpp"
@@ -12,7 +11,8 @@
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <Client.hpp>
+#include "Client.hpp"
+#include <memory>
 
 #ifdef SOCKET_PATH
 static const char *socket_path = SOCKET_PATH;
@@ -20,8 +20,8 @@ static const char *socket_path = SOCKET_PATH;
 static const char *socket_path = "/var/run/usbmuxd";
 #endif
 
-ClientManager::ClientManager(Muxer *mux)
-: _mux(mux), _clientNumber(0), _listenfd(0)
+ClientManager::ClientManager(std::shared_ptr<gref_Muxer> mux)
+: _mux(mux), _clientNumber(0), _listenfd(-1)
 {
     struct sockaddr_un bind_addr = {};
     
@@ -40,11 +40,16 @@ ClientManager::ClientManager(Muxer *mux)
 
 ClientManager::~ClientManager(){
     info("[destroying] ClientManager");
+    stopLoop();
+    
     if (_listenfd > 0) {
         int cfd = _listenfd; _listenfd = -1;
         close(cfd);
     }
-    stopLoop();
+}
+
+void ClientManager::stopAction() noexcept{
+    if (_listenfd) shutdown(_listenfd, SHUT_RDWR);
 }
 
 void ClientManager::loopEvent(){
@@ -57,28 +62,6 @@ void ClientManager::loopEvent(){
     } catch (tihmstar::exception &e) {
         error("failed to handle client %d with error=%d",cfd,e.code());
     }
-}
-
-void ClientManager::stopAction() noexcept{
-    //connect to the socket in order to "unblock it"
-    int err = 0;
-    int mfd = -1;
-    struct sockaddr_un sAddr = {};
-
-    debug("opening socket for stopAction");
-    cassure((mfd = socket(AF_UNIX, SOCK_STREAM, 0)) >0);
-    sAddr.sun_family = AF_UNIX;
-    strncpy(sAddr.sun_path, socket_path, sizeof(sAddr.sun_path));
-    debug("connecting for stopAction");
-    connect(mfd, (struct sockaddr*)&sAddr, (socklen_t)(sizeof(sAddr.sun_family)+strlen(sAddr.sun_path)));
-
-error:
-    if (mfd > 0){
-        close(mfd);
-    }
-    if (err){
-        fatal("ClientManager stopAction failed with err=%d",err);
-    }    
 }
 
 int ClientManager::accept_client(){
@@ -94,23 +77,20 @@ int ClientManager::accept_client(){
 }
 
 void ClientManager::handle_client(int client_fd){
-    Client *client = NULL;
-    
+    std::shared_ptr<Client> client = nullptr;
     cleanup([&]{
-        if (client_fd) {
+        if (client_fd > 0) {
             close(client_fd);
-        }
-        if (client) {
-            client->kill();
         }
     });
     
     try {
-        client = new Client(_mux,client_fd,_clientNumber++); client_fd = 0;
+        client = std::make_shared<Client>(_mux,client_fd,_clientNumber++); client_fd = 0;
+        client->_selfref = client;
     } catch (tihmstar::exception &e) {
         reterror("failed to handle client with error=%d",e.code());
     }
-    
+
     //transfer ownership to muxer
-    _mux->add_client(client); client = NULL;
+    (*_mux)->add_client(client); client = NULL;
 }

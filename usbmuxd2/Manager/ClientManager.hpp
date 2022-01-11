@@ -2,33 +2,31 @@
 //  ClientManager.hpp
 //  usbmuxd2
 //
-//  Created by tihmstar on 17.08.19.
-//  Copyright © 2019 tihmstar. All rights reserved.
+//  Created by tihmstar on 18.12.20.
 //
 
 #ifndef ClientManager_hpp
 #define ClientManager_hpp
 
-#include <stdint.h>
-#include <Muxer.hpp>
-#include <Manager/Manager.hpp>
+#include <libgeneral/Manager.hpp>
+#include "Muxer.hpp"
 
-class ClientManager : public Manager{
-    Muxer *_mux; //unmanaged
+class ClientManager : public tihmstar::Manager{
+    std::shared_ptr<gref_Muxer> _mux;
     uint64_t _clientNumber;
     int _listenfd;
     
+    virtual void stopAction() noexcept override;
     virtual void loopEvent() override;
-    virtual void stopAction() noexcept override; 
 
     
     int accept_client();
     void handle_client(int client_fd);
     
 public:
-    ClientManager(Muxer *mux);
-    
+    ClientManager(std::shared_ptr<gref_Muxer> mux);
     virtual ~ClientManager() override;
+
 };
 
 #endif /* ClientManager_hpp */

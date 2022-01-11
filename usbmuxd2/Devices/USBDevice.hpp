@@ -2,27 +2,24 @@
 //  USBDevice.hpp
 //  usbmuxd2
 //
-//  Created by tihmstar on 17.08.19.
-//  Copyright © 2019 tihmstar. All rights reserved.
+//  Created by tihmstar on 08.12.20.
 //
 
 #ifndef USBDevice_hpp
 #define USBDevice_hpp
 
-#include <Device.hpp>
-#include <Muxer.hpp>
-#include <lck_container.h>
-#include <vector>
-#include <set>
+#include <stdint.h>
+#include "Device.hpp"
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <libusb-1.0/libusb.h>
+#include <libgeneral/lck_container.hpp>
+#include <set>
 #include <map>
-#include <stdint.h>
-#include <mutex>
 
 #define DEV_MRU 65535
 
+class gref_USBDeviceManager;
 class USBDeviceManager;
 class TCP;
 
@@ -58,53 +55,57 @@ public:
         MUX_PROTO_SETUP = 2,
         MUX_PROTO_TCP = IPPROTO_TCP,
     };
-    
 private:
-    USBDeviceManager *_parent; //unmanaged
-    mux_dev_state _state;
-    libusb_device_handle *_usbdev;
-    uint64_t _speed;
-    int _wMaxPacketSize;
-    struct libusb_device_descriptor _devdesc;
-    mux_device _muxdev;
+    std::weak_ptr<USBDevice> _selfref;
+    std::shared_ptr<gref_USBDeviceManager> _parent;
     uint16_t _pid;
     uint8_t _bus, _address;
     uint8_t _interface, _ep_in, _ep_out;
-    std::atomic<uint16_t> _nextPort;
-    
-    std::mutex _usbLck;
-    lck_contrainer<std::set<struct libusb_transfer *>> _rx_xfers;
-    lck_contrainer<std::set<struct libusb_transfer *>> _tx_xfers;
-    lck_contrainer<std::map<uint16_t,TCP *>> _conns;
 
-    virtual ~USBDevice() override;
+    struct libusb_device_descriptor _devdesc;
+    int _wMaxPacketSize;
+    uint64_t _speed;
+    libusb_device_handle *_usbdev;
+    uint16_t _nextPort;
+    
+    mux_device _muxdev;
+    std::mutex _usbLck;
+    mux_dev_state _state;
+
+    
+    tihmstar::lck_contrainer<std::set<struct libusb_transfer *>> _rx_xfers;
+    tihmstar::lck_contrainer<std::set<struct libusb_transfer *>> _tx_xfers;
+    tihmstar::lck_contrainer<std::map<uint16_t,std::shared_ptr<TCP>>> _conns;
+
+
 public:
     USBDevice(const USBDevice &) =delete; //delete copy constructor
     USBDevice(USBDevice &&o) = delete; //move constructor
     
-    USBDevice(Muxer *mux);
+    USBDevice(std::shared_ptr<gref_Muxer> mux, std::shared_ptr<gref_USBDeviceManager> parent, uint16_t pid);
+    virtual ~USBDevice() override;
     
     uint32_t usb_location(){return (_bus << 16) | _address;}
-    
+
     void mux_init();
-    void usb_send(void *buf, size_t length);
     void send_packet(enum mux_protocol proto, const void *data, size_t length, tcphdr *header = NULL);
+    void usb_send(void *buf, size_t length);
+
     void device_data_input(unsigned char *buffer, uint32_t length);
     void device_version_input(struct mux_version_header *vh);
     void device_control_input(unsigned char *payload, uint32_t payload_length);
 
-    virtual void start_connect(uint16_t dport, Client *cli) override;
-    void close_connection(uint16_t sPort) noexcept;
+
+    virtual void start_connect(uint16_t dport, std::shared_ptr<Client> cli) override;
 
     
     friend Muxer;
     friend USBDeviceManager;
-    friend void usb_start_rx_loop(USBDevice *dev);
+    friend void usb_start_rx_loop(std::shared_ptr<USBDevice> dev);
     friend void usb_get_langid_callback(struct libusb_transfer *transfer) noexcept;
     friend void usb_get_serial_callback(struct libusb_transfer *transfer) noexcept;
     friend void rx_callback(struct libusb_transfer *xfer) noexcept;
     friend void tx_callback(struct libusb_transfer *xfer) noexcept;
 };
-
 
 #endif /* USBDevice_hpp */

@@ -2,18 +2,18 @@
 //  USBDeviceManager.hpp
 //  usbmuxd2
 //
-//  Created by tihmstar on 17.08.19.
-//  Copyright © 2019 tihmstar. All rights reserved.
+//  Created by tihmstar on 07.12.20.
 //
 
 #ifndef USBDeviceManager_hpp
 #define USBDeviceManager_hpp
 
-#include <Manager/DeviceManager/DeviceManager.hpp>
+#include <libgeneral/Event.hpp>
 #include <libusb-1.0/libusb.h>
-#include <lck_container.h>
+#include "DeviceManager.hpp"
+#include <libgeneral/lck_container.hpp>
 #include <set>
-
+#include <vector>
 
 #pragma mark USBDefines
 
@@ -41,29 +41,57 @@
 
 #define NUM_RX_LOOPS 3
 
-class USBDeviceManager : public DeviceManager{
-    libusb_hotplug_callback_handle _usb_hotplug_cb_handle;
-    lck_contrainer<std::set<uint16_t>> _constructing;
-    bool _isDying;
+class USBDeviceManager;
 
-    
+class gref_USBDeviceManager{
+    USBDeviceManager *_mgr;
+public:
+    gref_USBDeviceManager(USBDeviceManager *mgr);
+    ~gref_USBDeviceManager();
+
+    USBDeviceManager *operator->();
+};
+
+class USBDevice;
+class USBDeviceManager : public DeviceManager {
+private: //for lifecycle management only
+    tihmstar::Event _finalUnrefEvent;
+    std::shared_ptr<gref_USBDeviceManager> _ref;
+#ifdef DEBUG
+    std::weak_ptr<gref_USBDeviceManager> __debug_ref;
+    std::vector<std::weak_ptr<USBDevice>> __debug_devices;
+#endif
+
+private: //instance variables
+    libusb_hotplug_callback_handle _usb_hotplug_cb_handle;
+    std::shared_ptr<gref_USBDeviceManager> *_usb_hotplug_cb_refarg;
+    tihmstar::lck_contrainer<std::set<uint16_t>> _constructing;
+    std::atomic<bool> _killWasCalled;
+
+private: //class inheritance function overrides
     virtual void loopEvent() override;
     virtual void stopAction() noexcept override;
+
     
+private: //private member functions
     void add_constructing(uint8_t bus, uint8_t addr);
     void del_constructing(uint8_t bus, uint8_t addr);
     bool is_constructing(uint8_t bus, uint8_t addr);
 
     void device_add(libusb_device *dev);
+
     
 public:
-    USBDeviceManager(Muxer *mux);
-    virtual ~USBDeviceManager() override;    
+    USBDeviceManager(std::shared_ptr<gref_Muxer> mux);
+    virtual ~USBDeviceManager() override;
     
+    void kill() noexcept;
+    
+    friend gref_USBDeviceManager;
     friend int usb_hotplug_cb(libusb_context *ctx, libusb_device *device, libusb_hotplug_event event, void *user_data) noexcept;
     friend void usb_get_langid_callback(struct libusb_transfer *transfer) noexcept;
     friend void usb_get_serial_callback(struct libusb_transfer *transfer) noexcept;
-
 };
+
 
 #endif /* USBDeviceManager_hpp */

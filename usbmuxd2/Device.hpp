@@ -2,16 +2,17 @@
 //  Device.hpp
 //  usbmuxd2
 //
-//  Created by tihmstar on 17.08.19.
-//  Copyright © 2019 tihmstar. All rights reserved.
+//  Created by tihmstar on 08.12.20.
 //
 
 #ifndef Device_hpp
 #define Device_hpp
 
 #include <atomic>
+#include <memory>
 
 class Muxer;
+class gref_Muxer;
 class Client;
 
 class Device{
@@ -22,24 +23,21 @@ public:
         MUXCONN_WIFI = 1 << 1
     };
 protected:
-    Muxer *_muxer; //unmanaged
-    
+    std::shared_ptr<gref_Muxer> _mux;
     mux_conn_type _conntype;
-    std::atomic_bool _killInProcess;
     int _id; //even ID is USB, odd ID is WiFi
     char _serial[256];
 
-    virtual ~Device();
 public:
     Device(const Device &) =delete; //delete copy constructor
     Device(Device &&o) = delete; //move constructor
     
-    Device(Muxer *mux, mux_conn_type conntype);
-    
-    virtual void start_connect(uint16_t dport, Client *cli) = 0;
+    Device(std::shared_ptr<gref_Muxer> mux, mux_conn_type conntype);
+    virtual ~Device();
+
+    virtual void start_connect(uint16_t dport, std::shared_ptr<Client> cli) = 0;
 
     const char *getSerial() noexcept {return _serial;}
-    void kill() noexcept;
     
     friend Muxer;
 };
