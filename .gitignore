@@ -43,3 +43,5 @@ usbmuxd2/usbmuxd
 systemd/usbmuxd.service
 udev/39-usbmuxd.rules
 config.h.in~
+Build/
+configure~

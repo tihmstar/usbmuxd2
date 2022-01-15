@@ -16,3 +16,7 @@ Device::Device(std::shared_ptr<gref_Muxer> mux, mux_conn_type conntype)
 Device::~Device(){
     //
 }
+
+void Device::kill() noexcept{
+    
+}

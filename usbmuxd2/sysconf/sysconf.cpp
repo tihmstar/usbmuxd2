@@ -14,6 +14,8 @@
 #include <libgen.h>
 #include <map>
 #include <dirent.h>
+#include <string.h>
+#include <mutex>
 
 #define CONFIG_DIR  "lockdown"
 #define CONFIG_FILE "SystemConfiguration"
@@ -39,10 +41,8 @@ static plist_t readPlist(const char *filePath){
     int fd = -1;
     char *fbuf = NULL;
     cleanup([&]{
-        if (fd>0) {
-            close(fd); fd = -1;
-        }
         safeFree(fbuf);
+        safeClose(fd);
     });
     struct stat finfo = {};
     
@@ -56,8 +56,7 @@ static plist_t readPlist(const char *filePath){
     {
         plist_t pl = NULL;
         plist_from_memory(fbuf, (uint32_t)finfo.st_size, &pl);
-        retassure(pl, "failed to parse plist at path '%s'",filePath);
-        
+        retassure(pl, "failed to parse plist at path '%s'",filePath);        
         return pl;
     }
 }
@@ -233,7 +232,7 @@ void sysconf_set_value(const std::string &key, plist_t val){
         p_sysconf = plist_new_dict();
     }
     
-    plist_dict_set_item(p_sysconf, key.c_str(), val);
+    plist_dict_set_item(p_sysconf, key.c_str(), plist_copy(val));
     writePlistToFile(p_sysconf, filepath.c_str());
 }
 
@@ -284,4 +283,81 @@ std::string sysconf_get_system_buid(){
     retassure(buid_str = plist_get_string_ptr(p_buid, &buid_str_len), "Failed to get str ptr from build");
     
     return std::string(buid_str,buid_str_len);
+}
+
+std::string sysconf_udid_for_macaddr(std::string macaddr){
+    if (!gKnownMacAddrs.size()){
+        sysconf_load_known_macaddrs();
+    }
+    try{
+        return gKnownMacAddrs.at(macaddr);
+    }catch (...){
+        reterror("macaddr=%s is not paired",macaddr.c_str());
+    }
+}
+
+void sysconf_fix_permissions(int uid, int gid){
+    constexpr const char *config_path = sysconf_get_config_dir();
+
+    sysconf_create_config_dir();
+
+    assure(!chown(config_path, uid, gid));
+    {
+        DIR *dir = NULL;
+        cleanup([&]{
+            safeFreeCustom(dir, closedir);
+        });
+        struct dirent *ent = NULL;
+        
+        assure(dir = opendir(config_path));
+        
+        while ((ent = readdir (dir)) != NULL) {
+            if (ent->d_type != DT_REG)
+                continue;
+            std::string path = config_path;
+            path+= "/";
+            path+= ent->d_name;    
+            assure(!chown(path.c_str(), uid, gid));     
+        }
+    }
+}
+
+#pragma mark config
+bool sysconf_try_getconfig_bool(std::string key, bool defaultValue){
+    plist_t p_boolVal = NULL;
+    cleanup([&]{
+        safeFreeCustom(p_boolVal, plist_free);
+    });
+    try {
+        p_boolVal = sysconf_get_value(key);
+        assure(plist_get_node_type(p_boolVal) == PLIST_BOOLEAN);
+        return plist_bool_val_is_true(p_boolVal);
+    } catch (tihmstar::exception &e) {
+        warning("Failed to get %s! setting it to default val",key.c_str());
+        p_boolVal = plist_new_bool(defaultValue);
+        sysconf_set_value(key, p_boolVal);
+        return defaultValue;
+    }
+}
+
+Config::Config() : 
+//config
+doPreflight(false),
+enableWifiDeviceManager(false),
+enableUSBDeviceManager(false),
+//commandline
+enableExit(false),
+daemonize(false),
+useLogfile(false),
+debugLevel(0)
+{
+    //empty
+}
+
+void Config::load(){
+    //config
+    doPreflight = sysconf_try_getconfig_bool("doPreflight",true);
+    enableWifiDeviceManager = sysconf_try_getconfig_bool("enableWifiDeviceManager",true);
+    enableUSBDeviceManager = sysconf_try_getconfig_bool("enableUSBDeviceManager",true);
+    info("Loaded config");    
 }

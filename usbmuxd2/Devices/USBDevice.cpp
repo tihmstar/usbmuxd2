@@ -7,10 +7,11 @@
 
 #include "USBDevice.hpp"
 #include <libgeneral/macros.h>
-#include "USBDeviceManager.hpp"
-#include "Muxer.hpp"
-#include "TCP.hpp"
-#include "Client.hpp"
+#include "../Manager/USBDeviceManager.hpp"
+#include "../Muxer.hpp"
+#include "../TCP.hpp"
+#include "../Client.hpp"
+#include <string.h>
 
 #pragma mark libusb_callback definitions
 
@@ -55,10 +56,16 @@ USBDevice::~USBDevice(){
         _tx_xfers.notifyBlock();
     }
     
-#warning TODO close TCP connections
-    {
-        //
+    //cancel all TCP connections
+    _conns.addMember();
+    while (_conns._elems.size()){
+        uint16_t sport = _conns._elems.begin()->first;
+        _conns.delMember();
+        debug("cancelling conn(%u)",sport);
+        closeConnection(sport);
+        _conns.addMember();
     }
+    _conns.delMember();
     
     //free resources
     if (_usbdev){
@@ -109,16 +116,18 @@ void USBDevice::send_packet(enum mux_protocol proto, const void *data, size_t le
     mhdr->protocol = htonl(proto);
     mhdr->length = htonl(buflen);
     
-    std::unique_lock<std::mutex> ul(_usbLck);
-    if (_muxdev.version >= 2) {
-        mhdr->magic = htonl(0xfeedface);
-        if (proto == MUX_PROTO_SETUP) {
-            _muxdev.tx_seq = 0;
-            _muxdev.rx_seq = 0xFFFF;
+    {
+        std::unique_lock<std::mutex> ul(_usbLck);
+        if (_muxdev.version >= 2) {
+            mhdr->magic = htonl(0xfeedface);
+            if (proto == MUX_PROTO_SETUP) {
+                _muxdev.tx_seq = 0;
+                _muxdev.rx_seq = 0xFFFF;
+            }
+            mhdr->tx_seq = htons(_muxdev.tx_seq);
+            mhdr->rx_seq = htons(_muxdev.rx_seq);
+            _muxdev.tx_seq++;
         }
-        mhdr->tx_seq = htons(_muxdev.tx_seq);
-        mhdr->rx_seq = htons(_muxdev.rx_seq);
-        _muxdev.tx_seq++;
     }
     
     if (header) {
@@ -174,9 +183,8 @@ void USBDevice::usb_send(void *buf, size_t length){
     _tx_xfers.lockMember();
     _tx_xfers._elems.insert(xfer);
     _tx_xfers.unlockMember();
-    retassure(((ret = libusb_submit_transfer(xfer)),ret) >=0, "Failed to submit TX transfer %p len %zu to device %d-%d: %d", buf, length, _bus, _address, ret);
+    retassure((ret = libusb_submit_transfer(xfer)) >=0, "Failed to submit TX transfer %p len %zu to device %d-%d: %d", buf, length, _bus, _address, ret);
     xfer = NULL;
-    
     if (length % _wMaxPacketSize == 0) {
         debug("Send ZLP");
         // Send Zero Length Packet
@@ -192,7 +200,7 @@ void USBDevice::usb_send(void *buf, size_t length){
         _tx_xfers.lockMember();
         _tx_xfers._elems.insert(xfer);
         _tx_xfers.unlockMember();
-        retassure(((ret = libusb_submit_transfer(xfer)),ret) >=0, "Failed to submit TX ZLP transfer to device %d-%d: %d", _bus, _address, ret);
+        retassure((ret = libusb_submit_transfer(xfer)) >=0, "Failed to submit TX ZLP transfer to device %d-%d: %d", _bus, _address, ret);
         xfer = NULL;
     }
 }
@@ -223,6 +231,11 @@ void USBDevice::start_connect(uint16_t dport, std::shared_ptr<Client> cli){
     }
 }
 
+void USBDevice::closeConnection(uint16_t sport){
+    _conns.lockMember();
+    _conns._elems.erase(sport);
+    _conns.unlockMember();
+}
 
 void USBDevice::device_data_input(unsigned char *buffer, uint32_t length){
     struct mux_header *mhdr = NULL;
@@ -282,9 +295,9 @@ void USBDevice::device_data_input(unsigned char *buffer, uint32_t length){
             retassure(length >= (mux_header_size + sizeof(struct mux_version_header)), "Incoming version packet is too small (%u)", length);
         {
             mux_version_header vh = *(struct mux_version_header *)((char*)mhdr+mux_header_size);
-            ul.unlock();
             vh.major = ntohl(vh.major);
             vh.minor = ntohl(vh.minor);
+            ul.unlock();
             device_version_input(&vh);
         }
             break;
@@ -296,38 +309,37 @@ void USBDevice::device_data_input(unsigned char *buffer, uint32_t length){
         case MUX_PROTO_TCP:
             retassure(length >= (mux_header_size + sizeof(struct tcphdr)), "Incoming TCP packet is too small (%u)", length);
         {
-#warning TODO make sure to copy _muxdev.pktbuf and unlock ul()
-            reterror("todo");
-//            tcphdr* tcp_header = reinterpret_cast<tcphdr*>(mhdr+1);
-//            payload = reinterpret_cast<std::uint8_t*>(tcp_header+1);
-//            payload_length = length - sizeof(tcphdr) - mux_header_size;
-//
-//            uint16_t dport = htons(tcp_header->th_dport);
-//            _conns.addMember();
-//            auto conn = _conns._elems.find(dport);
-//            if (conn != _conns._elems.end()) {
-//                assert((*conn).first == dport);
-//                TCP *connect = (*conn).second;
-//                connect->retain();
-//                _conns.delMember();
-//                try {
-//                    connect->handle_input(tcp_header, payload, payload_length);
-//                } catch (tihmstar::exception &e) {
-//                    connect->release();
-//                    error("failed to handle input on snum=%d device(%d)=%s with error=%d (%s)",dport,_id,_serial,e.code(),e.what());
-//                    throw;
-//                }
-//                connect->release();
-//            }else{
-//                _conns.delMember();
-//                try {
-//                    TCP::send_RST(this, tcp_header);
-//                } catch (...) {
-//                    //
-//                }
-//                error("no connection found with snum=%d",dport);
-//                return;
-//            }
+            size_t tcpdataSize = 0;
+            tcphdr *tcp_header = reinterpret_cast<tcphdr*>(mhdr+1);
+            payload = reinterpret_cast<std::uint8_t*>(tcp_header+1);
+            payload_length = length - sizeof(tcphdr) - mux_header_size;
+            uint16_t dport = htons(tcp_header->th_dport);
+            std::shared_ptr<TCP> connect = nullptr;
+            {
+                _conns.addMember();
+                auto conn = _conns._elems.find(dport);
+                if (conn != _conns._elems.end()){
+                    connect = conn->second;
+                }
+                _conns.delMember();
+            }
+            ul.unlock();
+            if (!connect){
+                try {
+                   TCP::send_RST(this, tcp_header);
+               } catch (...) {
+                   //
+               }
+               error("no connection found with snum=%d",dport);
+            }else{
+               try {
+                   connect->handle_input(tcp_header, payload, payload_length);
+               } catch (tihmstar::exception &e) {
+                   error("failed to handle input on snum=%d device(%d)=%s with error=%d (%s)",dport,_id,_serial,e.code(),e.what());
+                   throw;
+               }
+            }
+            return;
         }
             break;
         default:

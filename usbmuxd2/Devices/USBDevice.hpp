@@ -97,7 +97,7 @@ public:
 
 
     virtual void start_connect(uint16_t dport, std::shared_ptr<Client> cli) override;
-
+    void closeConnection(uint16_t sport);
     
     friend Muxer;
     friend USBDeviceManager;

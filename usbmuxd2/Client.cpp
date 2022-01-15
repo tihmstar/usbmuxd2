@@ -12,7 +12,7 @@
 #include <netinet/tcp.h>
 #include "Muxer.hpp"
 #include <unistd.h>
-#include "sysconf.hpp"
+#include "./sysconf/sysconf.hpp"
 
 #pragma mark Client
 
@@ -327,7 +327,6 @@ void Client::processData(const usbmuxd_header *hdr){
                 send_result(hdr->tag, RESULT_OK);
                 return;
             }else if (message == "ListListeners") {
-#warning UNTESTED
                 (*_mux)->send_listenerList(_selfref.lock(), hdr->tag);
                 return;
             }else{
@@ -359,6 +358,7 @@ PLIST_CLIENT_CONNECTION_LOC:
     debug("Client %d connection request to device %d port %d", _fd, device_id, portnum);
     try {
         //transfer socket ownership to device!
+        _connectTag = hdr->tag;
         (*_mux)->start_connect(device_id, portnum, _selfref.lock());
     } catch (tihmstar::exception &e) {
         send_result(hdr->tag, RESULT_CONNREFUSED);

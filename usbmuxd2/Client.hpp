@@ -46,7 +46,7 @@ private:
     size_t _recvBytesCnt;
     uint32_t _proto_version;
     bool _isListening;
-    
+    uint32_t _connectTag;
     cinfo _info;
     std::mutex _wlock;
 
@@ -76,7 +76,7 @@ public:
     friend class Muxer;
     friend class ClientManager;
     friend class TCP;
-//    friend class SockConn;
+    friend class SockConn;
 };
 
 #endif /* Client_hpp */

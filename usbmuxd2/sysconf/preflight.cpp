@@ -12,7 +12,7 @@
 #include <libimobiledevice/heartbeat.h>
 #include <libimobiledevice/lockdown.h>
 #include <libimobiledevice/notification_proxy.h>
-
+#include <string.h>
 
 void preflight_device(const char *serial, int id){
     idevice_t dev = NULL;

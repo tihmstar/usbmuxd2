@@ -6,15 +6,25 @@
 //
 
 #include "Muxer.hpp"
-#include "USBDeviceManager.hpp"
-#include "ClientManager.hpp"
+#include "Manager/USBDeviceManager.hpp"
+#include "Manager/ClientManager.hpp"
 #include <libgeneral/macros.h>
 #include "Client.hpp"
-#include "preflight.hpp"
-#include "USBDevice.hpp"
-#include "WIFIDevice.hpp"
+#include "sysconf/preflight.hpp"
+#include "Devices/USBDevice.hpp"
+#include "Devices/WIFIDevice.hpp"
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <string.h>
+
+#ifdef HAVE_WIFI_SUPPORT
+#   ifdef HAVE_WIFI_AVAHI
+#       include "Manager/WIFIDeviceManager-avahi.hpp"
+#   elif HAVE_WIFI_MDNS
+#       include "Manager/WIFIDeviceManager-mDNS.hpp"
+#   endif //HAVE_AVAHI
+#endif
+
 
 #define MAXID (INT_MAX/2)
 
@@ -37,8 +47,8 @@ Muxer *gref_Muxer::operator->(){
 #pragma mark Muxer
 
 Muxer::Muxer(bool doPreflight)
-: _doPreflight(doPreflight), _ref{std::make_shared<gref_Muxer>(this)},
-    _newid(1)
+: _ref{std::make_shared<gref_Muxer>(this)},
+    _doPreflight(doPreflight), _climgr(nullptr), _usbdevmgr(nullptr), _wifidevmgr(nullptr), _newid(1)
 {
     //
 }
@@ -51,9 +61,14 @@ Muxer::~Muxer(){
     if (_usbdevmgr) {
         _usbdevmgr->kill();
     }
-    
+
+    if (_wifidevmgr) {
+        _wifidevmgr->kill();
+    }
+
     safeDelete(_climgr);
     safeDelete(_usbdevmgr);
+    safeDelete(_wifidevmgr);
     _finalUnrefEvent.wait(); //wait until no more references to this object exist
 }
 
@@ -65,8 +80,23 @@ void Muxer::spawnClientManager(){
 }
 
 void Muxer::spawnUSBDeviceManager(){
+    assure(!_usbdevmgr);
     _usbdevmgr = new USBDeviceManager(_ref);
     _usbdevmgr->startLoop();
+}
+
+void Muxer::spawnWIFIDeviceManager(){
+#ifndef HAVE_WIFI_SUPPORT
+    reterror("compiled without wifi support");
+#else
+    assure(!_wifidevmgr);
+    _wifidevmgr = new WIFIDeviceManager(_ref);
+    _wifidevmgr->startLoop();
+#endif
+}
+
+bool Muxer::hasDeviceManager() noexcept{
+    return _wifidevmgr != NULL || _usbdevmgr != NULL;
 }
 
 #pragma mark Clients
@@ -142,18 +172,17 @@ void Muxer::add_device(std::shared_ptr<Device> dev) noexcept{
     }
     
 #ifdef HAVE_WIFI_SUPPORT
-    reterror("todo implement");
-//    if (dev->_conntype == Device::MUXCONN_WIFI){
-//        WIFIDevice *wifidev = (WIFIDevice*)dev;
-//        try{
-//            wifidev->startLoop();
-//        }catch (tihmstar::exception &e){
-//            error("Failed to start WIFIDevice %s with error=%d (%s)",wifidev->_serial,e.code(),e.what());
-//            _devices.delMember();
-//            delete_device(dev);
-//            return;
-//        }
-//    }
+    if (dev->_conntype == Device::MUXCONN_WIFI){
+        std::shared_ptr<WIFIDevice> wifidev = std::static_pointer_cast<WIFIDevice>(dev);
+        try{
+            wifidev->startLoop();
+        }catch (tihmstar::exception &e){
+            error("Failed to start WIFIDevice %s with error=%d (%s)",wifidev->_serial,e.code(),e.what());
+            _devices.delMember();
+            delete_device(dev);
+            return;
+        }
+    }
 #endif //HAVE_WIFI_SUPPORT
 
     
@@ -187,12 +216,47 @@ void Muxer::delete_device(std::shared_ptr<Device> dev) noexcept{
     _devices.unlockMember();
 }
 
+void Muxer::delete_device_async(uint8_t bus, uint8_t address) noexcept{
+    std::thread async([this,bus,address](std::shared_ptr<gref_Muxer> ref){
+        _devices.addMember();
+        for (auto dev : _devices._elems){
+            if (dev->_conntype == Device::MUXCONN_USB) {
+                std::shared_ptr<USBDevice> usbdev = std::static_pointer_cast<USBDevice>(dev);
+                if (usbdev->_address == address && usbdev->_bus == bus) {
+                    _devices.delMember();
+                    delete_device(dev);
+                    return;
+                }
+            }
+        }
+        _devices.delMember();
+        error("We are not managing a device on bus 0x%02x, address 0x%02x",bus,address);
+    },_ref);
+    async.detach();
+}
+
+
 bool Muxer::have_usb_device(uint8_t bus, uint8_t address) noexcept{
     _devices.addMember();
     for (auto dev : _devices._elems){
         if (dev->_conntype == Device::MUXCONN_USB) {
             std::shared_ptr<USBDevice> usbdev = std::static_pointer_cast<USBDevice>(dev);
             if (usbdev->_address == address && usbdev->_bus == bus) {
+                _devices.delMember();
+                return true;
+            }
+        }
+    }
+    _devices.delMember();
+    return false;
+}
+
+bool Muxer::have_wifi_device(std::string macaddr) noexcept{
+    _devices.addMember();
+    for (auto dev : _devices._elems){
+        if (dev->_conntype == Device::MUXCONN_WIFI) {
+            std::shared_ptr<WIFIDevice> wifidev = std::static_pointer_cast<WIFIDevice>(dev);
+            if (wifidev->_serviceName.substr(0,wifidev->_serviceName.find("@")) == macaddr) {
                 _devices.delMember();
                 return true;
             }
@@ -213,6 +277,10 @@ int Muxer::id_for_device(const char *uuid, Device::mux_conn_type type) noexcept{
     }
     _devices.delMember();
     return ret;
+}
+
+size_t Muxer::devices_cnt() noexcept{
+    return _devices._elems.size();
 }
 
 #pragma mark connection
@@ -302,13 +370,50 @@ void Muxer::notify_device_add(std::shared_ptr<Device> dev) noexcept{
 }
 
 void Muxer::notify_device_remove(int deviceID) noexcept{
-#warning TODO implement
-    reterror("TODO implement");
+    plist_t p_rsp = NULL;
+    cleanup([&]{
+        safeFreeCustom(p_rsp, plist_free);
+    });
+    
+    p_rsp = plist_new_dict();
+    plist_dict_set_item(p_rsp, "MessageType", plist_new_string("Detached"));
+    plist_dict_set_item(p_rsp, "DeviceID", plist_new_uint(deviceID));
+    
+    _clients.addMember();
+    for (auto c : _clients._elems){
+        if (c->_isListening) {
+            try {
+                c->send_plist_pkt(0, p_rsp);
+            } catch (...) {
+                //we don't care if this fails
+            }
+        }
+    }
+    _clients.delMember();
 }
 
+
 void Muxer::notify_device_paired(int deviceID) noexcept{
-#warning TODO implement
-    reterror("TODO implement");
+    plist_t p_rsp = NULL;
+    cleanup([&]{
+        safeFreeCustom(p_rsp, plist_free);
+    });
+
+    p_rsp = plist_new_dict();
+    plist_dict_set_item(p_rsp, "MessageType", plist_new_string("Paired"));
+    plist_dict_set_item(p_rsp, "DeviceID", plist_new_uint(deviceID));
+
+    _clients.addMember();
+    for (auto c : _clients._elems){
+        if (c->_isListening) {
+            try {
+                c->send_plist_pkt(0, p_rsp);
+            } catch (...) {
+                //we don't care if this fails
+            }
+        }
+    }
+    _clients.delMember();
 }
 
 

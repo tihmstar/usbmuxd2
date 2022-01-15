@@ -36,8 +36,10 @@ public:
     virtual ~Device();
 
     virtual void start_connect(uint16_t dport, std::shared_ptr<Client> cli) = 0;
+    virtual void kill() noexcept;
 
     const char *getSerial() noexcept {return _serial;}
+    
     
     friend Muxer;
 };

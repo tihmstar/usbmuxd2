@@ -8,7 +8,8 @@
 #include <libgeneral/macros.h>
 #include "USBDeviceManager.hpp"
 #include "Muxer.hpp"
-#include "USBDevice.hpp"
+#include "../Devices/USBDevice.hpp"
+#include <string.h>
 
 #pragma mark gref_USBDeviceManager
 
@@ -50,13 +51,11 @@ int usb_hotplug_cb(libusb_context *ctx, libusb_device *device, libusb_hotplug_ev
             }
             break;
         case LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT:
-#warning TODO
-//            reterror("todo");
-//        {
-//            uint8_t bus = libusb_get_bus_number(device);
-//            uint8_t address = libusb_get_device_address(device);
-//            devmngr->_mux->delete_device_async(bus, address);
-//        }
+       {
+           uint8_t bus = libusb_get_bus_number(device);
+           uint8_t address = libusb_get_device_address(device);
+           (*(*devmgr)->_mux)->delete_device_async(bus, address);
+       }
             break;
         default:
             error("Unhandled event %d", event);
@@ -399,11 +398,6 @@ void USBDeviceManager::device_add(libusb_device *dev){
     retassure(!(ret = libusb_open(dev, &handle)),"Could not open device %d-%d: %d", bus, address, ret);
     
     retassure(!(ret = libusb_get_configuration(handle, &current_config)), "Could not get configuration for device %d-%d: %d", bus, address, ret);
-    
-#ifdef DEBUG
-#warning DEBUG
-    devdesc.bNumConfigurations = 4;
-#endif
     
     if (current_config != devdesc.bNumConfigurations) {
         if((ret = libusb_get_active_config_descriptor(dev, &config)) != 0) {
