@@ -32,19 +32,13 @@ Software:
 
 ## BUILD
 usbmuxd2 is intended to be run on Linux only!\
-A compiler with C++17 and libstdc++fs (C++17 standard) is required!
+A compiler with C++17 is required!
 
 This project does *NOT* support Windows!\
 This project is not meant to be run on macOS! (You really don't need it on macOS!)
 
 
 ### Actually building
-Be sure to checkout the require submodule after cloning.
-```bash
-git submodule init
-git submodule update
-```
-
 To compile run:
 
 ```bash
