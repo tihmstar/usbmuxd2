@@ -23,7 +23,6 @@
 #define CONFIG_SYSTEM_BUID_KEY "SystemBUID"
 #define CONFIG_HOST_ID_KEY "HostID"
 
-
 #ifdef __APPLE__
 #   define BASE_CONFIG_DIR "/var/db"
 #else

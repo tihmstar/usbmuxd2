@@ -161,8 +161,8 @@
 			isa = PBXGroup;
 			children = (
 				8715F219258CFBD4002042A3 /* usbmuxd2-proto.h */,
-				87A96C0B2792D79B005356D5 /* log.c */,
 				87A96C0A2792D79B005356D5 /* log.h */,
+				87A96C0B2792D79B005356D5 /* log.c */,
 				878BA20F257FDDA8003A8992 /* Device.hpp */,
 				878BA20E257FDDA8003A8992 /* Device.cpp */,
 				879D7AC42583C5A5000B3A4E /* Client.hpp */,
