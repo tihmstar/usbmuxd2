@@ -7,21 +7,25 @@
 //  Copyright © 2019 tihmstar. All rights reserved.
 //
 
-#ifndef WIFIDeviceManager_hpp
-#define WIFIDeviceManager_hpp
+#ifndef WIFIDeviceManager_avahi_hpp
+#define WIFIDeviceManager_avahi_hpp
 
-#include "Muxer.hpp"
-#include "DeviceManager.hpp"
 #include <avahi-common/simple-watch.h>
 #include <avahi-client/client.h>
 #include <avahi-client/lookup.h>
+
+#include "../Muxer.hpp"
+#include "DeviceManager.hpp"
 #include "WIFIDeviceManager.hpp"
+#include "../Devices/WIFIDevice.hpp"
 
 class WIFIDeviceManager : public DeviceManager{
 private: //for lifecycle management only
     tihmstar::Event _finalUnrefEvent;
     std::shared_ptr<gref_WIFIDeviceManager> _ref;
-
+#ifdef DEBUG
+    std::weak_ptr<gref_WIFIDeviceManager> __debug_ref;
+#endif
 private:
     std::shared_ptr<gref_WIFIDeviceManager> *_wifi_cb_refarg;
 
@@ -32,7 +36,7 @@ private:
     virtual void loopEvent() override;
 public:
     WIFIDeviceManager(std::shared_ptr<gref_Muxer> mux);
-    virtual ~WIFIDeviceManager() override;    
+    virtual ~WIFIDeviceManager() override;
 
     void device_add(std::shared_ptr<WIFIDevice> dev);
     void kill() noexcept;
@@ -47,4 +51,4 @@ public:
 };
 
 
-#endif /* WIFIDeviceManager_hpp */
+#endif /* WIFIDeviceManager_avahi_hpp */

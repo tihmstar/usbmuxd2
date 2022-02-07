@@ -10,11 +10,11 @@
 #include <libgeneral/macros.h>
 
 #ifdef HAVE_WIFI_AVAHI
-#include "WIFIDeviceManager-avahi.hpp"
-#include <Devices/WIFIDevice.hpp>
 #include <sysconf/sysconf.hpp>
 #include <avahi-common/error.h>
 #include <avahi-common/malloc.h>
+
+#include "WIFIDeviceManager-avahi.hpp"
 
 #pragma mark avahi_callback definitions
 void avahi_client_callback(AvahiClient *c, AvahiClientState state, void* userdata) noexcept;
@@ -28,6 +28,9 @@ void avahi_resolve_callback(AvahiServiceResolver *r, AvahiIfIndex interface, Ava
 
 WIFIDeviceManager::WIFIDeviceManager(std::shared_ptr<gref_Muxer> mux)
 : DeviceManager(mux),_ref{std::make_shared<gref_WIFIDeviceManager>(this)},_wifi_cb_refarg(nullptr){
+#ifdef DEBUG
+    __debug_ref = _ref; //only for debugging!
+#endif
     int err = 0;
     debug("WIFIDeviceManager avahi-client");
 
@@ -42,14 +45,15 @@ WIFIDeviceManager::WIFIDeviceManager(std::shared_ptr<gref_Muxer> mux)
     debug("WIFIDeviceManager created avahi service_browser");
 }
 
-WIFIDeviceManager::~WIFIDeviceManager(){    
+WIFIDeviceManager::~WIFIDeviceManager(){
     _ref = nullptr;
-    stopLoop();
+    kill();
     //make sure _simple_poll is valid, while the event loop tries to use it
 
     safeFreeCustom(_avahi_sb,avahi_service_browser_free);
     safeFreeCustom(_avahi_client,avahi_client_free);
     safeFreeCustom(_simple_poll,avahi_simple_poll_free);
+    safeDelete(_wifi_cb_refarg);
     _finalUnrefEvent.wait(); //wait until no more references to this object exist
 }
 
@@ -61,7 +65,7 @@ void WIFIDeviceManager::device_add(std::shared_ptr<WIFIDevice> dev){
 void WIFIDeviceManager::kill() noexcept{
     debug("[WIFIDeviceManager] killing WIFIDeviceManager");
     safeFreeCustom(_simple_poll,avahi_simple_poll_quit);
-    _wifi_cb_refarg = nullptr;
+    stopLoop();
 }
 
 void WIFIDeviceManager::loopEvent(){
@@ -96,7 +100,7 @@ void avahi_browse_callback(AvahiServiceBrowser *b, AvahiIfIndex interface, Avahi
            the callback function is called the server will free
            the resolver for us. */
         if (!(avahi_service_resolver_new((*devmgr)->_avahi_client, interface, protocol, name, type, domain, AVAHI_PROTO_UNSPEC, (AvahiLookupFlags)0, avahi_resolve_callback, userdata)))
-            debug("Failed to resolve service '%s': %s\n", name, avahi_strerror(avahi_client_errno(wifimgr->_avahi_client)));
+            debug("Failed to resolve service '%s': %s\n", name, avahi_strerror(avahi_client_errno((*devmgr)->_avahi_client)));
         break;
     case AVAHI_BROWSER_REMOVE:
         debug("(Browser) REMOVE: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
@@ -141,14 +145,13 @@ void avahi_resolve_callback(AvahiServiceResolver *r, AvahiIfIndex interface, Ava
                 break;
             }
 
-            if (!(*devmgr)->_mux->have_wifi_device(macAddr)) {
+            if (!(*(*devmgr)->_mux)->have_wifi_device(macAddr)) {
                 // found new device
                 serviceName += ".";
                 serviceName += type;
                 try{
-                    dev = std::make_shared<WIFIDevice>(uuid,addr,serviceName, wifimgr->_mux);
+                    dev = std::make_shared<WIFIDevice>(uuid,addr,serviceName, (*devmgr)->_mux);
                     (*devmgr)->device_add(dev); dev = NULL;
-                    dev->_selfref = dev;
                 } catch (tihmstar::exception &e){
                 	creterror("failed to construct device with error=%d (%s)",e.code(),e.what());
                 }

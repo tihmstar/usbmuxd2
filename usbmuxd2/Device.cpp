@@ -18,5 +18,5 @@ Device::~Device(){
 }
 
 void Device::kill() noexcept{
-    
+  //
 }

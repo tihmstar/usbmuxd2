@@ -42,7 +42,7 @@ CXXFLAGS+=" -std=c++17"
 
 PKG_CHECK_MODULES(libgeneral, libgeneral >= 39)
 PKG_CHECK_MODULES(libusb, libusb-1.0 >= 1.0.9)
-PKG_CHECK_MODULES(libplist, libplist-2.0 >= 2.2.1)
+PKG_CHECK_MODULES(libplist, libplist-2.0 >= 2.2.0)
 PKG_CHECK_MODULES(libimobiledevice, libimobiledevice-1.0 >= 1.2.1, have_limd=yes, have_limd=no)
 PKG_CHECK_MODULES(avahi, avahi-client >= 0.7, have_avahi=yes, have_avahi=no)
 

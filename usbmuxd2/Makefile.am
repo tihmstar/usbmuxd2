@@ -29,6 +29,7 @@ usbmuxd_SOURCES = main.cpp \
 			Devices/USBDevice.cpp \
 			Devices/WIFIDevice.cpp \
 			Manager/USBDeviceManager.cpp \
+			Manager/WIFIDeviceManager.cpp \
 			Manager/WIFIDeviceManager-avahi.cpp \
 			Manager/WIFIDeviceManager-mDNS.cpp \
 			Manager/ClientManager.cpp \

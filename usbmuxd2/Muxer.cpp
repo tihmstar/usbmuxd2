@@ -46,18 +46,25 @@ Muxer *gref_Muxer::operator->(){
 
 #pragma mark Muxer
 
+#ifdef DEBUG
+long Muxer::_get_selfref_usecount(){
+  return __debug_ref.use_count();
+}
+#endif
+
 Muxer::Muxer(bool doPreflight)
 : _ref{std::make_shared<gref_Muxer>(this)},
     _doPreflight(doPreflight), _climgr(nullptr), _usbdevmgr(nullptr), _wifidevmgr(nullptr), _newid(1)
 {
-    //
+#ifdef DEBUG
+  __debug_ref = _ref;
+#endif
 }
 
 Muxer::~Muxer(){
     debug("[Muxer] destroing muxer");
     _ref = nullptr;
-    
-    
+
     if (_usbdevmgr) {
         _usbdevmgr->kill();
     }
@@ -65,6 +72,27 @@ Muxer::~Muxer(){
     if (_wifidevmgr) {
         _wifidevmgr->kill();
     }
+
+    //delete all devices
+    _devices.addMember();
+    while (_devices._elems.size()) {
+      auto dev = _devices._elems.front();
+      _devices.delMember();
+      delete_device(dev);
+      _devices.addMember();
+    }
+    _devices.delMember();
+
+    //delete all clients
+    _clients.addMember();
+    while (_clients._elems.size()) {
+      auto cli = _clients._elems.front();
+      _clients.delMember();
+      delete_client(cli);
+      _clients.addMember();
+    }
+    _clients.delMember();
+
 
     safeDelete(_climgr);
     safeDelete(_usbdevmgr);
@@ -117,15 +145,36 @@ void Muxer::add_client(std::shared_ptr<Client> cli){
 
 void Muxer::delete_client(int cli_fd) noexcept{
     debug("delete_client %d",cli_fd);
-    _clients.lockMember();
+    std::shared_ptr<Client> hold = nullptr;
+    _clients.addMember();
     for (auto c : _clients._elems) {
         if (c->_fd == cli_fd) {
+            hold = c;//hold shared ptr until after we unlocked _clients
+            _clients.delMember();
+            _clients.lockMember();
             const auto target = std::remove(_clients._elems.begin(), _clients._elems.end(), c);
             _clients._elems.erase(target, _clients._elems.end());
-            break; //iteration no longer valid!
+            _clients.unlockMember();
+            return; //return here, iteration no longer valid!
         }
     }
-    _clients.unlockMember();
+    _clients.delMember();
+    if (hold){
+      hold->kill();
+    }
+}
+
+void Muxer::delete_client(std::shared_ptr<Client> cli) noexcept{
+    debug("delete_client %d",cli->_fd);
+    _clients.lockMember();
+    const auto target = std::remove(_clients._elems.begin(), _clients._elems.end(), cli);
+    if (target != _clients._elems.end()) {
+      _clients._elems.erase(target, _clients._elems.end());
+      _clients.unlockMember();
+      cli->kill();
+    }else{
+      _clients.unlockMember();
+    }
 }
 
 void Muxer::add_device(std::shared_ptr<Device> dev) noexcept{
@@ -154,12 +203,12 @@ void Muxer::add_device(std::shared_ptr<Device> dev) noexcept{
         dev->_id = (_newid << 1);
         _devices.delMember();
     }
-    
+
     //fixup connection information in ID
     dev->_id |= (dev->_conntype == Device::MUXCONN_WIFI);
 
     debug("Muxer: adding device %s assigning id %d",dev->_serial,dev->_id);
-    
+
     _devices.lockMember();
     _devices._elems.push_back(dev);
     _devices.unlockMember();
@@ -170,7 +219,7 @@ void Muxer::add_device(std::shared_ptr<Device> dev) noexcept{
         _devices.delMember();
         return;
     }
-    
+
 #ifdef HAVE_WIFI_SUPPORT
     if (dev->_conntype == Device::MUXCONN_WIFI){
         std::shared_ptr<WIFIDevice> wifidev = std::static_pointer_cast<WIFIDevice>(dev);
@@ -185,11 +234,11 @@ void Muxer::add_device(std::shared_ptr<Device> dev) noexcept{
     }
 #endif //HAVE_WIFI_SUPPORT
 
-    
+
 #ifdef HAVE_LIBIMOBILEDEVICE
     if (dev->_conntype == Device::MUXCONN_USB && _doPreflight){
         char *serial = strdup(dev->_serial);
-        
+
         std::thread b([](char *serial, int devID){
             try {
                 preflight_device(serial,devID);
@@ -212,8 +261,11 @@ void Muxer::delete_device(std::shared_ptr<Device> dev) noexcept{
     if (target != _devices._elems.end()){
         _devices._elems.erase(target, _devices._elems.end());
         notify_device_remove(dev->_id);
+        _devices.unlockMember();
+        dev->kill();
+    }else{
+      _devices.unlockMember();
     }
-    _devices.unlockMember();
 }
 
 void Muxer::delete_device_async(uint8_t bus, uint8_t address) noexcept{
@@ -319,7 +371,7 @@ void Muxer::send_deviceList(std::shared_ptr<Client> cli, uint32_t tag){
      _devices.delMember();
 
      plist_dict_set_item(p_rsp, "DeviceList", p_devarr); p_devarr = NULL; //transfer ownership
-     
+
      cli->send_plist_pkt(tag, p_rsp);
 }
 
@@ -333,7 +385,7 @@ void Muxer::send_listenerList(std::shared_ptr<Client> cli, uint32_t tag){
     assure(p_rsp = plist_new_dict());
     assure(p_cliarr = plist_new_array());
 
-    
+
     _clients.addMember();
     for (auto &c : _clients._elems) {
         plist_array_append_item(p_cliarr, getClientPlist(c));
@@ -341,7 +393,7 @@ void Muxer::send_listenerList(std::shared_ptr<Client> cli, uint32_t tag){
     _clients.delMember();
 
     plist_dict_set_item(p_rsp, "ListenerList", p_cliarr); p_cliarr = NULL; //transfer ownership
-    
+
     cli->send_plist_pkt(tag, p_rsp);
 }
 
@@ -353,7 +405,7 @@ void Muxer::notify_device_add(std::shared_ptr<Device> dev) noexcept{
     cleanup([&]{
         safeFreeCustom(p_rsp, plist_free);
     });
-    
+
     p_rsp = getDevicePlist(dev);
 
     _clients.addMember();
@@ -374,11 +426,11 @@ void Muxer::notify_device_remove(int deviceID) noexcept{
     cleanup([&]{
         safeFreeCustom(p_rsp, plist_free);
     });
-    
+
     p_rsp = plist_new_dict();
     plist_dict_set_item(p_rsp, "MessageType", plist_new_string("Detached"));
     plist_dict_set_item(p_rsp, "DeviceID", plist_new_uint(deviceID));
-    
+
     _clients.addMember();
     for (auto c : _clients._elems){
         if (c->_isListening) {
@@ -423,7 +475,7 @@ void Muxer::notify_alldevices(std::shared_ptr<Client> cli) noexcept{
         error("notify_alldevices called on a client which is not listening");
         return;
     }
-    
+
     _devices.addMember();
     for (auto &d : _devices._elems){
         plist_t p_rsp = NULL;
@@ -448,14 +500,14 @@ plist_t Muxer::getDevicePlist(std::shared_ptr<Device> dev) noexcept{
         safeFreeCustom(p_devp, plist_free);
         safeFreeCustom(p_props, plist_free);
     });
-    
+
     p_devp = plist_new_dict();
     p_props = plist_new_dict();
 
     plist_dict_set_item(p_devp, "MessageType", plist_new_string("Attached"));
     plist_dict_set_item(p_devp, "DeviceID", plist_new_uint(dev->_id));
 
-    
+
     plist_dict_set_item(p_props, "DeviceID", plist_new_uint(dev->_id));
 
 
@@ -485,7 +537,7 @@ plist_t Muxer::getDevicePlist(std::shared_ptr<Device> dev) noexcept{
     }
     plist_dict_set_item(p_props, "SerialNumber", plist_new_string(dev->getSerial()));
     plist_dict_set_item(p_devp, "Properties", p_props);p_props = NULL; // transfer ownership
-    
+
     {
         plist_t ret = p_devp; p_devp = NULL;
         return ret;
@@ -497,11 +549,11 @@ plist_t Muxer::getClientPlist(std::shared_ptr<Client> cli) noexcept{
     cleanup([&]{
         safeFreeCustom(p_ret, plist_free);
     });
-    
+
     const Client::cinfo info = cli->getClientInfo();
-    
+
     p_ret = plist_new_dict();
-    
+
     plist_dict_set_item(p_ret,"Blacklisted", plist_new_bool(0));
     plist_dict_set_item(p_ret,"BundleID", plist_new_string(info.bundleID));
     plist_dict_set_item(p_ret,"ConnType", plist_new_uint(0));

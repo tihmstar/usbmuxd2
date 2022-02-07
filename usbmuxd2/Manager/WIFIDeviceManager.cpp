@@ -6,7 +6,7 @@
 //
 
 #include "WIFIDeviceManager.hpp"
-
+#include <libgeneral/macros.h>
 #ifdef HAVE_WIFI_SUPPORT
 #   ifdef HAVE_WIFI_AVAHI
 #       include "WIFIDeviceManager-avahi.hpp"

@@ -39,10 +39,11 @@ void rx_callback(struct libusb_transfer *xfer) noexcept;
 int usb_hotplug_cb(libusb_context *ctx, libusb_device *device, libusb_hotplug_event event, void *user_data) noexcept{
     int err = 0;
     std::shared_ptr<gref_USBDeviceManager> devmgr = *(std::shared_ptr<gref_USBDeviceManager> *)user_data;
-    
+
     switch (event) {
         case LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED:
             try {
+                cretassure(!(*devmgr)->_isDying,"Not adding device on dying USBDeviceManager");
                 (*devmgr)->device_add(device);
             } catch (tihmstar::exception &e) {
                 uint8_t bus = libusb_get_bus_number(device);
@@ -61,7 +62,7 @@ int usb_hotplug_cb(libusb_context *ctx, libusb_device *device, libusb_hotplug_ev
             error("Unhandled event %d", event);
             break;
     }
-    
+
 error:
     return 0;
 }
@@ -72,9 +73,9 @@ void usb_get_langid_callback(struct libusb_transfer *transfer) noexcept{
         uint16_t langid = 0;
         const unsigned char *data = NULL;
         int ret = 0;
-        
+
         retassure(usbdev != nullptr, "USBDevice was dead when usb_get_langid_callback fired");
-        
+
         transfer->flags |= LIBUSB_TRANSFER_FREE_BUFFER;
         retassure(transfer->status == LIBUSB_TRANSFER_COMPLETED, "Failed to request lang ID for device %d-%d (%i)", usbdev->_bus, usbdev->_address, transfer->status);
 
@@ -88,12 +89,12 @@ void usb_get_langid_callback(struct libusb_transfer *transfer) noexcept{
                                   langid, 1024 + LIBUSB_CONTROL_SETUP_SIZE);
 
         libusb_fill_control_transfer(transfer, usbdev->_usbdev, transfer->buffer, usb_get_serial_callback, transfer->user_data, 1000);
-        
+
         retassure((ret = libusb_submit_transfer(transfer)) >= 0, "Could not request transfer for device %d-%d (%d)", usbdev->_bus, usbdev->_address, ret);
     } catch (tihmstar::exception &e) {
         error("[usb_get_langid_callback] Failed with error=%d (%s)",e.code(),e.what());
         e.dump();
-        
+
         (*usbdev->_parent)->del_constructing(usbdev->_bus, usbdev->_address);
         //at this point we are the only owner of usbdev (the floating shared_ptr to it)
         //if anything goes wrong, this is the last chance to delete the object without leaking it
@@ -131,7 +132,7 @@ void usb_start_rx_loop(std::shared_ptr<USBDevice> dev){
     assure(buf = malloc(USB_MRU));
     assure(xfer = libusb_alloc_transfer(0));
     xfer->user_data = NULL;
-    
+
     devrefarg = new std::shared_ptr<USBDevice>{dev};
     libusb_fill_bulk_transfer(xfer, dev->_usbdev, dev->_ep_in, (unsigned char *)buf, USB_MRU, rx_callback, devrefarg, 0);
     buf = NULL; //owned by xfer now
@@ -177,7 +178,7 @@ void usb_get_serial_callback(struct libusb_transfer *transfer) noexcept{
                 usbdev->_serial[di+1] = '\0';
             }
         }
-        
+
         info("Got serial '%s' for device %d-%d", usbdev->_serial, usbdev->_bus, usbdev->_address);
 
         // Spin up NUM_RX_LOOPS parallel usb data retrieval loops
@@ -206,7 +207,7 @@ void usb_get_serial_callback(struct libusb_transfer *transfer) noexcept{
     } catch (tihmstar::exception &e) {
         error("[usb_get_serial_callback] Failed with error=%d (%s)",e.code(),e.what());
         e.dump();
-        
+
         (*usbdev->_parent)->del_constructing(usbdev->_bus, usbdev->_address);
     }
     //at this point we are the only owner of usbdev (the floating shared_ptr to it)
@@ -262,7 +263,7 @@ error:
     dev->_rx_xfers.lockMember();
     dev->_rx_xfers._elems.erase(xfer);
     dev->_rx_xfers.unlockMember();
-    
+
     debug("freing rx xfer for USBDevice(%s)",dev->_serial);
     safeFree(xfer->buffer);
     {
@@ -270,20 +271,26 @@ error:
         safeDelete(cbargref);
     }
     libusb_free_transfer(xfer);
-    (*dev->_mux)->delete_device(dev);
+
+    //delete device on a separate thread, this could be the last ref
+    //so don't destroy it from within the libusb callback!
+    std::thread delthread([](std::shared_ptr<USBDevice> tdev){
+      (*tdev->_mux)->delete_device(tdev);
+    },dev);
+    delthread.detach();
 }
 
 
 #pragma mark USBDeviceManager
 
 USBDeviceManager::USBDeviceManager(std::shared_ptr<gref_Muxer> mux)
-: DeviceManager(mux), _ref{std::make_shared<gref_USBDeviceManager>(this)},
-_usb_hotplug_cb_handle{}, _usb_hotplug_cb_refarg{nullptr}, _killWasCalled(false)
+: DeviceManager(mux), _ref{std::make_shared<gref_USBDeviceManager>(this)}, _isDying(false),
+_usb_hotplug_cb_handle{}, _usb_hotplug_cb_refarg{nullptr}
 {
 #ifdef DEBUG
     __debug_ref = _ref; //only for debugging!
 #endif
-    
+
     bool hasCTX = false;
     cleanup([&](){ //cleanup only code
         if (hasCTX) {
@@ -297,27 +304,30 @@ _usb_hotplug_cb_handle{}, _usb_hotplug_cb_refarg{nullptr}, _killWasCalled(false)
 
     assure(!libusb_init(NULL));hasCTX = true;
     info("Registering for libusb hotplug events");
-    
+
     assure(_usb_hotplug_cb_refarg = new std::shared_ptr<gref_USBDeviceManager>(_ref));
-    
+
     retassure(!(ret = libusb_hotplug_register_callback(NULL, static_cast<libusb_hotplug_event>(LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED | LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT), LIBUSB_HOTPLUG_ENUMERATE, VID_APPLE, LIBUSB_HOTPLUG_MATCH_ANY, 0, usb_hotplug_cb, _usb_hotplug_cb_refarg, &_usb_hotplug_cb_handle)),"ERROR: Could not register for libusb hotplug events (%d)", ret);
     hasCTX = false; //don't deinit libusb context
-    
+
 }
 
 USBDeviceManager::~USBDeviceManager(){
     debug("[USBDeviceManager] destroing USBDeviceManager");
+    kill();
     stopLoop();
+    safeDelete(_usb_hotplug_cb_refarg);
+    if (_usb_hotplug_cb_handle) {
+      libusb_hotplug_deregister_callback(NULL,_usb_hotplug_cb_handle);_usb_hotplug_cb_handle = 0;
+    }
+    _ref = nullptr;
     _finalUnrefEvent.wait(); //wait until no more references to this object exist
     libusb_exit(NULL);
 }
 
 void USBDeviceManager::kill() noexcept{
-    if (_killWasCalled.exchange(true)) return; // no need to doublekill
     debug("[USBDeviceManager] killing USBDeviceManager");
-    _ref = nullptr;
-
-    safeDelete(_usb_hotplug_cb_refarg);
+    _isDying = true;
 }
 
 #pragma mark USBDeviceManager inheritance overrides
@@ -370,7 +380,7 @@ void USBDeviceManager::device_add(libusb_device *dev){
         safeFreeCustom(handle, libusb_close);
         safeFreeCustom(config, libusb_free_config_descriptor);
     });
-    
+
     int ret = 0;
     uint8_t bus = 0;
     uint8_t address = 0;
@@ -380,25 +390,25 @@ void USBDeviceManager::device_add(libusb_device *dev){
 
     bus = libusb_get_bus_number(dev);
     assure((address = libusb_get_device_address(dev))>0);
-    
+
     if ((*_mux)->have_usb_device(bus, address) || is_constructing(bus, address)) {
         //device already found
         return;
     }
-    
+
     retassure(!(ret = libusb_get_device_descriptor(dev, &devdesc)), "Could not get device descriptor for device %d-%d: %d", bus, address, ret);
 
     retassure(devdesc.idVendor == VID_APPLE, "USBDevice is not an Apple device");
     retassure(devdesc.idProduct >= PID_RANGE_LOW && devdesc.idProduct <= PID_RANGE_MAX, "USBDevice is Apple, but not PID is not in observe range");
-    
+
     info("Found new device with v/p %04x:%04x at %d-%d", devdesc.idVendor, devdesc.idProduct, bus, address);
 
     // No blocking operation can follow: it may be run in the libusb hotplug callback and libusb will refuse any
     // blocking call
     retassure(!(ret = libusb_open(dev, &handle)),"Could not open device %d-%d: %d", bus, address, ret);
-    
+
     retassure(!(ret = libusb_get_configuration(handle, &current_config)), "Could not get configuration for device %d-%d: %d", bus, address, ret);
-    
+
     if (current_config != devdesc.bNumConfigurations) {
         if((ret = libusb_get_active_config_descriptor(dev, &config)) != 0) {
             debug("Could not get old configuration descriptor for device %d-%d: %d", bus, address, ret);
@@ -421,9 +431,9 @@ void USBDeviceManager::device_add(libusb_device *dev){
         debug("Setting configuration for device %d-%d, from %d to %d", bus, address, current_config, devdesc.bNumConfigurations);
         retassure(!(ret = libusb_set_configuration(handle, devdesc.bNumConfigurations)), "Could not set configuration %d for device %d-%d: %d", devdesc.bNumConfigurations, bus, address, ret);
     }
-    
+
     retassure(!(ret = libusb_get_active_config_descriptor(dev, &config)), "Could not get configuration descriptor for device %d-%d: %d", bus, address, ret);
-        
+
     newDevice = std::make_shared<USBDevice>(_mux,_ref,devdesc.idProduct);
 #ifdef DEBUG
     __debug_devices.push_back(newDevice);
@@ -432,12 +442,12 @@ void USBDeviceManager::device_add(libusb_device *dev){
         transfer gets own reference, which it needs to free once done
      */
     transferdevref = new std::shared_ptr<USBDevice>(newDevice);
-    
+
     /*
         make sure we allocated transferdevref before setting selfref, as this is the only path that kill() gets called
      */
     newDevice->_selfref = newDevice;
-    
+
     for(int j=0; j<config->bNumInterfaces; j++) {
         const struct libusb_interface_descriptor *intf = &config->interface[j].altsetting[0];
         if(intf->bInterfaceClass != INTERFACE_CLASS ||
@@ -466,7 +476,7 @@ void USBDeviceManager::device_add(libusb_device *dev){
             warning("Endpoint type mismatch for interface %d of device %d-%d", intf->bInterfaceNumber, bus, address);
         }
     }
-    
+
     reterror("Could not find a suitable USB interface for device %d-%d", bus, address);
 found_device:
 
@@ -487,7 +497,7 @@ found_device:
     } else {
         debug("Using wMaxPacketSize=%d for device %d-%d", newDevice->_wMaxPacketSize, newDevice->_bus, newDevice->_address);
     }
-    
+
     switch (libusb_get_device_speed(dev)) {
         case LIBUSB_SPEED_LOW:
             newDevice->_speed = 1500000;
@@ -504,11 +514,11 @@ found_device:
             newDevice->_speed = 480000000;
             break;
     }
-    
-    
+
+
     info("USB Speed is %g MBit/s for device %d-%d", (double)(newDevice->_speed / 1000000.0), newDevice->_bus, newDevice->_address);
-    
-    
+
+
     /**
      * From libusb:
      *     Asking for the zero'th index is special - it returns a string
@@ -517,17 +527,17 @@ found_device:
      **/
     retassure(transfer_buffer = (unsigned char *)malloc(1024 + LIBUSB_CONTROL_SETUP_SIZE + 8), "Failed to allocate transfer buffer for device %d-%d: %d", bus, address, ret);
     memset(transfer_buffer, '\0', 1024 + LIBUSB_CONTROL_SETUP_SIZE + 8);
-    
-    
+
+
     libusb_fill_control_setup(transfer_buffer, LIBUSB_ENDPOINT_IN, LIBUSB_REQUEST_GET_DESCRIPTOR, LIBUSB_DT_STRING << 8, 0, 1024 + LIBUSB_CONTROL_SETUP_SIZE);
-    
+
     libusb_fill_control_transfer(transfer, newDevice->_usbdev, transfer_buffer, usb_get_langid_callback, transferdevref, 1000);
-    
+
     retassure(!(ret = libusb_submit_transfer(transfer)), "Could not request transfer for device %d-%d (%d)", newDevice->_bus, newDevice->_address, ret);
 
     transferdevref = nullptr; //don't cleanup
     transfer = NULL; //transfer in process, needs to be freed by callback
     transfer_buffer = NULL; //transfer in process, needs to be freed by callback
-    
+
     add_constructing(bus, address);
 }

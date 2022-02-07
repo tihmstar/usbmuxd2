@@ -71,8 +71,11 @@ public:
     Client(std::shared_ptr<gref_Muxer> mux, int fd, uint64_t number);
     ~Client();
 
+    void kill() noexcept;
+
+
     const cinfo &getClientInfo(){return _info;};
-    
+
     friend class Muxer;
     friend class ClientManager;
     friend class TCP;

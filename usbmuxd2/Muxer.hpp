@@ -32,7 +32,10 @@ class Muxer {
 private: //for lifecycle management only
     tihmstar::Event _finalUnrefEvent;
     std::shared_ptr<gref_Muxer> _ref;
-
+#ifdef DEBUG
+    std::weak_ptr<gref_Muxer> __debug_ref;
+    long _get_selfref_usecount();
+#endif
 private:
     bool _doPreflight;
     ClientManager *_climgr;
@@ -49,7 +52,7 @@ public:
 
     Muxer(bool doPreflight = true);
     ~Muxer();
-        
+
     //---- Managers ----
     void spawnClientManager();
     void spawnUSBDeviceManager();
@@ -59,6 +62,7 @@ public:
     //---- Clients ----
     void add_client(std::shared_ptr<Client> cli);
     void delete_client(int cli_fd) noexcept;
+    void delete_client(std::shared_ptr<Client> cli) noexcept;
 
    //---- Devices ----
     void add_device(std::shared_ptr<Device> dev) noexcept;
@@ -83,7 +87,7 @@ public:
     //---- Static ----
     static plist_t getDevicePlist(std::shared_ptr<Device> dev) noexcept;
     static plist_t getClientPlist(std::shared_ptr<Client> cli) noexcept;
-    
+
     friend gref_Muxer;
 };
 

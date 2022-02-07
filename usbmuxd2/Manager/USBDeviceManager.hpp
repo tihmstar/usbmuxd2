@@ -63,16 +63,16 @@ private: //for lifecycle management only
 #endif
 
 private: //instance variables
+    std::atomic<bool> _isDying;
     libusb_hotplug_callback_handle _usb_hotplug_cb_handle;
     std::shared_ptr<gref_USBDeviceManager> *_usb_hotplug_cb_refarg;
     tihmstar::lck_contrainer<std::set<uint16_t>> _constructing;
-    std::atomic<bool> _killWasCalled;
 
 private: //class inheritance function overrides
     virtual void loopEvent() override;
     virtual void stopAction() noexcept override;
 
-    
+
 private: //private member functions
     void add_constructing(uint8_t bus, uint8_t addr);
     void del_constructing(uint8_t bus, uint8_t addr);
@@ -80,13 +80,13 @@ private: //private member functions
 
     void device_add(libusb_device *dev);
 
-    
+
 public:
     USBDeviceManager(std::shared_ptr<gref_Muxer> mux);
     virtual ~USBDeviceManager() override;
-    
+
     void kill() noexcept;
-    
+
     friend gref_USBDeviceManager;
     friend int usb_hotplug_cb(libusb_context *ctx, libusb_device *device, libusb_hotplug_event event, void *user_data) noexcept;
     friend void usb_get_langid_callback(struct libusb_transfer *transfer) noexcept;

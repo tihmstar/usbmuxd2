@@ -67,12 +67,12 @@ private:
     uint64_t _speed;
     libusb_device_handle *_usbdev;
     uint16_t _nextPort;
-    
+
     mux_device _muxdev;
     std::mutex _usbLck;
     mux_dev_state _state;
 
-    
+
     tihmstar::lck_contrainer<std::set<struct libusb_transfer *>> _rx_xfers;
     tihmstar::lck_contrainer<std::set<struct libusb_transfer *>> _tx_xfers;
     tihmstar::lck_contrainer<std::map<uint16_t,std::shared_ptr<TCP>>> _conns;
@@ -81,10 +81,12 @@ private:
 public:
     USBDevice(const USBDevice &) =delete; //delete copy constructor
     USBDevice(USBDevice &&o) = delete; //move constructor
-    
+
     USBDevice(std::shared_ptr<gref_Muxer> mux, std::shared_ptr<gref_USBDeviceManager> parent, uint16_t pid);
     virtual ~USBDevice() override;
-    
+
+    virtual void kill() noexcept override;
+
     uint32_t usb_location(){return (_bus << 16) | _address;}
 
     void mux_init();
@@ -98,7 +100,7 @@ public:
 
     virtual void start_connect(uint16_t dport, std::shared_ptr<Client> cli) override;
     void closeConnection(uint16_t sport);
-    
+
     friend Muxer;
     friend USBDeviceManager;
     friend void usb_start_rx_loop(std::shared_ptr<USBDevice> dev);
