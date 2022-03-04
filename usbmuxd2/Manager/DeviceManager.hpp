@@ -14,8 +14,9 @@ class gref_Muxer;
 
 class DeviceManager : public tihmstar::Manager {
 protected:
-    std::shared_ptr<gref_Muxer> _mux;
+    
 public:
+    std::shared_ptr<gref_Muxer> _mux;
     DeviceManager(std::shared_ptr<gref_Muxer> mux) : _mux(mux) {}
     virtual ~DeviceManager() {}    
 };

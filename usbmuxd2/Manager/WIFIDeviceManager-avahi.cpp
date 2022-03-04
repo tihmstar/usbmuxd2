@@ -9,12 +9,102 @@
 
 #include <libgeneral/macros.h>
 
-#ifdef HAVE_WIFI_AVAHI
-#include <sysconf/sysconf.hpp>
+// #ifdef HAVE_WIFI_AVAHI
 #include <avahi-common/error.h>
 #include <avahi-common/malloc.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+#include <sysconf/sysconf.hpp>
+#define PORT 8080
 
 #include "WIFIDeviceManager-avahi.hpp"
+
+///////////////////////
+// jkcoxson was here //
+///////////////////////
+
+std::vector<std::string> split(std::string str, std::string delimiter) {
+    std::vector<std::string> internal;
+    size_t pos = 0;
+    std::string token;
+    while ((pos = str.find(delimiter)) != std::string::npos) {
+        token = str.substr(0, pos);
+        internal.push_back(token);
+        str.erase(0, pos + delimiter.length());
+    }
+    internal.push_back(str);
+    return internal;
+}
+
+void dev_injection(void* userdata) noexcept{
+    debug("Starting injection");
+    std::shared_ptr<gref_WIFIDeviceManager> devmgr = *(std::shared_ptr<gref_WIFIDeviceManager> *)userdata;
+    debug("Gained access to internal device manager (this is starting to sound like a virus)");
+
+    int server_fd, new_socket, valread;
+    struct sockaddr_in address;
+    int opt = 1;
+    int addrlen = sizeof(address);
+    char buffer[1024] = {0};
+    char *hello = "Hello from server";
+
+    // Creating socket file descriptor
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        debug("Socket failed");
+        return;
+    }
+
+    // Forcefully attaching socket to the port 8080
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT,
+                   &opt, sizeof(opt))) {
+        debug("setsockopt failed");
+        return;
+    }
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(PORT);
+
+    // Forcefully attaching socket to the port 8080
+    if (bind(server_fd, (struct sockaddr *)&address,
+             sizeof(address)) < 0) {
+        debug("Bind failed");
+        return;
+    }
+    if (listen(server_fd, 3) < 0) {
+        debug("Listen failed");
+        return;
+    }
+    while (0 == 0) {
+        if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0) {
+            debug("Injection socket accept failed");
+            return;
+        }
+        debug("New connection on the injection socket");
+        valread = read(new_socket, buffer, 1024);
+        // Get array of strings by splitting by '\n'
+        std::vector<std::string> lines = split(buffer, "\n");
+        // Get the udid from the first line
+        std::string uuid = lines[0];
+        // Get the name from the second line
+        std::string serviceName = lines[1];
+        // Get the ip from the third line
+        std::string addr = lines[2];
+        debug("uuid: '%s', addr: '%s', serviceName: '%s'\n", uuid.c_str(), addr.c_str(), serviceName.c_str());
+        std::shared_ptr<WIFIDevice> dev = nullptr;
+        dev = std::make_shared<WIFIDevice>(uuid, addr, serviceName, (*devmgr)->_mux);
+        (*devmgr)->device_add(dev);
+        dev = NULL;
+    } 
+}
+
+//////////////////////
+// peace out gamers //
+//////////////////////
 
 #pragma mark avahi_callback definitions
 void avahi_client_callback(AvahiClient *c, AvahiClientState state, void* userdata) noexcept;
@@ -41,8 +131,11 @@ WIFIDeviceManager::WIFIDeviceManager(std::shared_ptr<gref_Muxer> mux)
         "Failed to start avahi_client with error=%d. Is the daemon running?",err);
     assure(!err);
 
-	assure(_avahi_sb = avahi_service_browser_new(_avahi_client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, "_apple-mobdev2._tcp", NULL, (AvahiLookupFlags)0, avahi_browse_callback, _wifi_cb_refarg));
-    debug("WIFIDeviceManager created avahi service_browser");
+	// assure(_avahi_sb = avahi_service_browser_new(_avahi_client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, "_apple-mobdev2._tcp", NULL, (AvahiLookupFlags)0, avahi_browse_callback, _wifi_cb_refarg));
+
+    debug("A wild jkcoxson has entered the chat, injecting cool new stuff yeet (PS why is cpp weird smh)\n");
+    std::thread device_injector (dev_injection, _wifi_cb_refarg);
+    device_injector.detach();
 }
 
 WIFIDeviceManager::~WIFIDeviceManager(){
@@ -150,6 +243,9 @@ void avahi_resolve_callback(AvahiServiceResolver *r, AvahiIfIndex interface, Ava
                 serviceName += ".";
                 serviceName += type;
                 try{
+                    debug("uuid: '%s', addr: '%s', serviceName: '%s'\n", uuid.c_str(), addr, serviceName.c_str());
+                    debug("lol your boi jkcoxson is cancelling this, have a nice day!");
+                    return;
                     dev = std::make_shared<WIFIDevice>(uuid,addr,serviceName, (*devmgr)->_mux);
                     (*devmgr)->device_add(dev); dev = NULL;
                 } catch (tihmstar::exception &e){
@@ -171,4 +267,4 @@ error:
 	}
 }
 
-#endif //HAVE_WIFI_SUPPORT
+// #endif //HAVE_WIFI_SUPPORT
