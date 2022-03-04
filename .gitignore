@@ -45,3 +45,5 @@ udev/39-usbmuxd.rules
 config.h.in~
 Build/
 configure~
+
+.vscode
