@@ -1,7 +1,8 @@
 // jkcoxson
 
-#include "ManualDeviceManager.hpp"
 #include <libgeneral/macros.h>
+
+#include "ManualDeviceManager.hpp"
 #include <map>
 
 
@@ -73,7 +74,7 @@ void socketThread(void *userdata, std::shared_ptr<gref_Muxer> mux) noexcept {
         std::string addr = lines[3];
         if (toggle == "1") {
             std::shared_ptr<ManualDevice> dev = nullptr;
-            dev = std::make_shared<ManualDevice>(uuid, addr, serviceName, (*devmgr)->_mux);
+            dev = std::make_shared<ManualDevice>(uuid, addr, serviceName, mux);
             devices[uuid] = dev;
             (*devmgr)->device_add(dev);
             dev = NULL;

@@ -9,7 +9,7 @@
 
 #include <libgeneral/macros.h>
 
-// #ifdef HAVE_WIFI_AVAHI
+#ifdef HAVE_WIFI_AVAHI
 #include <avahi-common/error.h>
 #include <avahi-common/malloc.h>
 #include <netinet/in.h>
@@ -49,6 +49,7 @@ WIFIDeviceManager::WIFIDeviceManager(std::shared_ptr<gref_Muxer> mux)
     assure(!err);
 
 	assure(_avahi_sb = avahi_service_browser_new(_avahi_client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, "_apple-mobdev2._tcp", NULL, (AvahiLookupFlags)0, avahi_browse_callback, _wifi_cb_refarg));
+        debug("WIFIDeviceManager created avahi service_browser");
 }
 
 WIFIDeviceManager::~WIFIDeviceManager(){
@@ -177,4 +178,4 @@ error:
 	}
 }
 
-// #endif //HAVE_WIFI_SUPPORT
+#endif //HAVE_WIFI_SUPPORT
