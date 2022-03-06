@@ -23,6 +23,7 @@
 #   elif HAVE_WIFI_MDNS
 #       include "Manager/WIFIDeviceManager-mDNS.hpp"
 #   endif //HAVE_AVAHI
+#   include "Manager/ManualDeviceManager.hpp"
 #endif
 
 
@@ -120,6 +121,16 @@ void Muxer::spawnWIFIDeviceManager(){
     assure(!_wifidevmgr);
     _wifidevmgr = new WIFIDeviceManager(_ref);
     _wifidevmgr->startLoop();
+#endif
+}
+
+void Muxer::spawnManualManager(){
+#ifndef HAVE_WIFI_SUPPORT
+    reterror("compiled without wifi support");
+#else
+    assure(!_manualdevmgr);
+    _manualdevmgr = new ManualDeviceManager(_ref);
+    _manualdevmgr->startLoop();
 #endif
 }
 

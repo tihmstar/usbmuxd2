@@ -18,6 +18,7 @@
 class ClientManager;
 class USBDeviceManager;
 class WIFIDeviceManager;
+class ManualDeviceManager;
 
 class gref_Muxer{
     Muxer *_mgr;
@@ -41,6 +42,7 @@ private:
     ClientManager *_climgr;
     USBDeviceManager *_usbdevmgr;
     WIFIDeviceManager *_wifidevmgr;
+    ManualDeviceManager *_manualdevmgr;
     int _newid;
     tihmstar::lck_contrainer<std::vector<std::shared_ptr<Device>>> _devices;
     tihmstar::lck_contrainer<std::vector<std::shared_ptr<Client>>> _clients;
@@ -57,6 +59,7 @@ public:
     void spawnClientManager();
     void spawnUSBDeviceManager();
     void spawnWIFIDeviceManager();
+    void spawnManualManager();
     bool hasDeviceManager() noexcept;
 
     //---- Clients ----

@@ -431,11 +431,19 @@ int main(int argc, const char * argv[]) {
     }
 
     if (gConfig->enableWifiDeviceManager){
+        // Spawn the avahi service
         try{
             mux->spawnWIFIDeviceManager();
             info("Inited WIFIDeviceManager");
         }catch (tihmstar::exception &e){
             fatal("failed to spawnWIFIDeviceManager with error=%d (%s)",e.code(),e.what());
+        }
+        // Spawn the manual service
+        try {
+            mux->spawnManualManager();
+            info("Inited ManualManager");
+        }catch (tihmstar::exception &e){
+            fatal("failed to spawnManualManager with error=%d (%s)",e.code(),e.what());
         }
     }
     
