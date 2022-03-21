@@ -1,5 +1,11 @@
 #!/bin/sh
 
+test -n "$srcdir" || srcdir=`dirname "$0"`
+test -n "$srcdir" || srcdir=.
+
+olddir=`pwd`
+
+cd $srcdir
 #cleanup cache for correct versioning when run multiple times
 rm -rf autom4te.cache
 
@@ -13,12 +19,14 @@ aclocal -I m4
 autoheader
 automake --add-missing
 autoconf
+cd "$olddir"
+
 requires_pkgconfig=`which pkg-config 2>&1 >/dev/null`
 if [ $? -ne 0 ]; then
   echo "Missing required pkg-config. Please install it on your system and run again."
 fi
 
 if [ -z "$NOCONFIGURE" ]; then
-    ./configure "$@"
+    "$srcdir/configure" "$@"
 fi
 
