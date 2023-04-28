@@ -289,7 +289,7 @@ void Client::processData(const usbmuxd_header *hdr){
                     const char *pairRecord = NULL;
                     uint64_t pairRecord_len = 0;
                     retassure(pairRecord = plist_get_data_ptr(p_pairRecord, &pairRecord_len), "Failed to get data ptr for PairRecordData");
-                    plist_from_memory(pairRecord, (uint32_t)pairRecord_len, &p_parsedPairRecord);
+                    plist_from_memory(pairRecord, (uint32_t)pairRecord_len, &p_parsedPairRecord, NULL);
                 }
                 retassure(p_parsedPairRecord, "Failed to plist-parse received PairRecordData");
 

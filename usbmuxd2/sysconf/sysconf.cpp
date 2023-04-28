@@ -54,7 +54,7 @@ static plist_t readPlist(const char *filePath){
     
     {
         plist_t pl = NULL;
-        plist_from_memory(fbuf, (uint32_t)finfo.st_size, &pl);
+        plist_from_memory(fbuf, (uint32_t)finfo.st_size, &pl, NULL);
         retassure(pl, "failed to parse plist at path '%s'",filePath);        
         return pl;
     }
