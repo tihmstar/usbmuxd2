@@ -2,7 +2,7 @@
 //  sysconf.cpp
 //  usbmuxd2
 //
-//  Created by tihmstar on 18.12.20.
+//  Created by tihmstar on 08.11.23.
 //
 
 #include "sysconf.hpp"
@@ -54,8 +54,8 @@ static plist_t readPlist(const char *filePath){
     
     {
         plist_t pl = NULL;
-        plist_from_memory(fbuf, (uint32_t)finfo.st_size, &pl);
-        retassure(pl, "failed to parse plist at path '%s'",filePath);        
+        plist_from_memory(fbuf, (uint32_t)finfo.st_size, &pl, NULL);
+        retassure(pl, "failed to parse plist at path '%s'",filePath);
         return pl;
     }
 }
@@ -78,7 +78,6 @@ static void mkdir_with_parents(const char *dir, int mode){
     assure(parent = strdup(dir));
     assure(parentdir = dirname(parent));
     mkdir_with_parents(parentdir, mode);
-#warning TODO is this even correct??
 }
 
 static void sysconf_create_config_dir(void){
@@ -315,8 +314,8 @@ void sysconf_fix_permissions(int uid, int gid){
                 continue;
             std::string path = config_path;
             path+= "/";
-            path+= ent->d_name;    
-            assure(!chown(path.c_str(), uid, gid));     
+            path+= ent->d_name;
+            assure(!chown(path.c_str(), uid, gid));
         }
     }
 }
@@ -339,7 +338,7 @@ bool sysconf_try_getconfig_bool(std::string key, bool defaultValue){
     }
 }
 
-Config::Config() : 
+Config::Config() :
 //config
 doPreflight(false),
 enableWifiDeviceManager(false),
@@ -358,5 +357,5 @@ void Config::load(){
     doPreflight = sysconf_try_getconfig_bool("doPreflight",true);
     enableWifiDeviceManager = sysconf_try_getconfig_bool("enableWifiDeviceManager",true);
     enableUSBDeviceManager = sysconf_try_getconfig_bool("enableUSBDeviceManager",true);
-    info("Loaded config");    
+    info("Loaded config");
 }

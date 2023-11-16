@@ -29,7 +29,6 @@ case $host_os in
         have_mdns="yes"
         ;;
   *)
-        LDFLAGS+=" -lstdc++fs"
         ;;
 esac
 
@@ -37,7 +36,7 @@ esac
 CFLAGS+=' -DCUSTOM_LOGGING="\"log.h\""'
 CXXFLAGS+=' -DCUSTOM_LOGGING="\"log.h\""'
 
-CXXFLAGS+=" -std=c++17"
+CXXFLAGS+=" -std=c++20"
 
 
 PKG_CHECK_MODULES(libgeneral, libgeneral >= 39)
@@ -144,22 +143,6 @@ AC_SUBST(udev_activation_rule)
 
 
 # Checks for libraries.
-
-# Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netinet/in.h stdint.h stdlib.h string.h sys/socket.h sys/time.h unistd.h filesystem])
-
-# Checks for typedefs, structures, and compiler characteristics.
-AC_CHECK_HEADER_STDBOOL
-AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
-AC_TYPE_UINT16_T
-AC_TYPE_UINT32_T
-AC_TYPE_UINT64_T
-AC_TYPE_UINT8_T
-
-# Checks for library functions.
-AC_CHECK_FUNCS([clock_gettime gettimeofday memset socket strdup strerror])
-
 LT_INIT
 
 # Check for operating system

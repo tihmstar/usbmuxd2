@@ -2,7 +2,7 @@
 //  sysconf.hpp
 //  usbmuxd2
 //
-//  Created by tihmstar on 18.12.20.
+//  Created by tihmstar on 08.11.23.
 //
 
 #ifndef sysconf_hpp
@@ -22,21 +22,20 @@ void sysconf_fix_permissions(int uid, int gid);
 
 class Config{
 public:
-	//config
-	bool doPreflight;
-	bool enableWifiDeviceManager;
-	bool enableUSBDeviceManager;
+    //config
+    bool doPreflight;
+    bool enableWifiDeviceManager;
+    bool enableUSBDeviceManager;
 
-	//commandline
-	bool enableExit;
-	bool daemonize;
-	bool useLogfile;
+    //commandline
+    bool enableExit;
+    bool daemonize;
+    bool useLogfile;
     int debugLevel;
-	std::string dropUser;
-	
-	Config();
-	void load();
+    std::string dropUser;
+    
+    Config();
+    void load();
 };
-
 
 #endif /* sysconf_hpp */

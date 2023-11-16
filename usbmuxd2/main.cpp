@@ -6,16 +6,20 @@
 //  Copyright © 2019 tihmstar. All rights reserved.
 //
 
-#include <iostream>
-#include <libgeneral/macros.h>
 #include "Muxer.hpp"
+#include "sysconf/sysconf.hpp"
+
+#include <libgeneral/macros.h>
+
+#include <iostream>
 #include <future>
+
+#include <sys/resource.h>
+
 #include <signal.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/resource.h>
-#include "sysconf/sysconf.hpp"
 #include <getopt.h>
 #include <string.h>
 #include <fcntl.h>
@@ -35,7 +39,7 @@ extern "C"{
 
 static const char *lockfile = "/var/run/usbmuxd.pid";
 
-static pthread_mutex_t mlck = {};
+static tihmstar::Event terminateEvent;
 static Config *gConfig = nullptr;
 static Muxer *mux = nullptr;
 static int exit_signal = 0;
@@ -50,7 +54,6 @@ static int verbose = 0;
 
 
 static void handle_signal(int sig) noexcept{
-    int err = 0;
     static int ctrlcCounter = 0;
     if (sig != SIGUSR1 && sig != SIGUSR2) {
         info("Caught signal %d, exiting", sig);
@@ -58,7 +61,7 @@ static void handle_signal(int sig) noexcept{
             fatal("forcefully terminating program!");
             exit(2);
         }
-        cassure(!pthread_mutex_unlock(&mlck));
+        terminateEvent.notifyAll();
     }else{
         if(gConfig->enableExit) {
             if (sig == SIGUSR1) {
@@ -69,7 +72,7 @@ static void handle_signal(int sig) noexcept{
                 } else {
                     // it's safe to quit
                     info("No more devices attached, exiting!");
-                    cassure(!pthread_mutex_unlock(&mlck));
+                    terminateEvent.notifyAll();
                 }
             }
         } else {
@@ -287,12 +290,8 @@ int main(int argc, const char * argv[]) {
     int err = 0;
     int lfd = -1;
     struct flock lock = {};
-
     
     info("starting %s", VERSION_STRING);
-    cassure(!pthread_mutex_init(&mlck, NULL));
-    cassure(!pthread_mutex_lock(&mlck));
-    debug("mlck inited");
 
     gConfig = new Config();
     try{
@@ -323,13 +322,12 @@ int main(int argc, const char * argv[]) {
     log_level = verbose;
     info("starting %s", VERSION_STRING);
 
-
     {
         // set number of file descriptors to higher value
         struct rlimit rlim;
         getrlimit(RLIMIT_NOFILE, &rlim);
         rlim.rlim_max = 65536;
-        setrlimit(RLIMIT_NOFILE, (const struct rlimit*)&rlim);   
+        setrlimit(RLIMIT_NOFILE, (const struct rlimit*)&rlim);
     }
     set_signal_handlers();
 
@@ -355,7 +353,6 @@ int main(int argc, const char * argv[]) {
 
     cretassure(!exit_signal,"No running instance found, none killed. Exiting.");
 
-
     if (gConfig->daemonize) {
         if (daemonize() < 0) {
             fprintf(stderr, "usbmuxd: FATAL: Could not daemonize!\n");
@@ -380,7 +377,7 @@ int main(int argc, const char * argv[]) {
         info("Preflight disabled by config!");
     }
     
-    //starting    
+    //starting
     mux = new Muxer(gConfig->doPreflight);
 
     try{
@@ -391,7 +388,6 @@ int main(int argc, const char * argv[]) {
         fatal("Terminating since a ClientManager is require to operate");
         cassure(0);
     }
-    
 
     // drop elevated privileges
     if (gConfig->dropUser.size() && (getuid() == 0 || geteuid() == 0)) {
@@ -459,9 +455,8 @@ int main(int argc, const char * argv[]) {
         notice("Enabled exit on SIGUSR1 if no devices are attached. Start a new instance with \"--exit\" to trigger.");
     }
 
-
     //block thread
-    pthread_mutex_lock(&mlck);
+    terminateEvent.waitForEvent(terminateEvent.getNextEvent());
 
 error:
     if (err){

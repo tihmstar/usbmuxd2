@@ -2,25 +2,20 @@
 //  Client.hpp
 //  usbmuxd2
 //
-//  Created by tihmstar on 11.12.20.
+//  Created by tihmstar on 20.07.23.
 //
 
 #ifndef Client_hpp
 #define Client_hpp
 
-
-#include <libgeneral/Manager.hpp>
-#include <memory>
 #include "usbmuxd2-proto.h"
-#include <plist/plist.h>
+#include "Manager/ClientManager.hpp"
+#include <libgeneral/Manager.hpp>
 #include <libgeneral/Event.hpp>
+#include <plist/plist.h>
+#include <memory>
 
 class Muxer;
-class gref_Muxer;
-
-/*
- Well a Client is also a Manager, because it manages the connection to the other end of the socket
- */
 class Client : public tihmstar::Manager{
 public:
     static constexpr int bufsize = 0x20000;
@@ -38,7 +33,8 @@ public:
 private: //for lifecycle management only
     std::weak_ptr<Client> _selfref;
 private:
-    std::shared_ptr<gref_Muxer> _mux;
+    Muxer *_mux; //not owned
+    ClientManager *_parent; //not owned
     int _fd;
     uint64_t _number;
 
@@ -50,8 +46,13 @@ private:
     cinfo _info;
     std::mutex _wlock;
 
+#pragma mark inheritance function
     virtual void stopAction() noexcept override;
-    virtual void loopEvent() override;
+    virtual void afterLoop() noexcept override;
+    virtual bool loopEvent() override;
+
+
+#pragma mark private member function
     void update_client_info(const plist_t dict);
 
     void readData();
@@ -65,21 +66,19 @@ private:
     void send_result(uint32_t tag, uint32_t result);
 
 public:
-    Client(const Client &) =delete; //delete copy constructor
-    Client(Client &&o) = delete; //move constructor
-
-    Client(std::shared_ptr<gref_Muxer> mux, int fd, uint64_t number);
+    Client(Muxer *mux, ClientManager *parent, int fd, uint64_t number);
     ~Client();
 
+#pragma mark public member function
     void kill() noexcept;
-
+    void deconstruct() noexcept;
 
     const cinfo &getClientInfo(){return _info;};
 
-    friend class Muxer;
+#pragma mark friends
     friend class ClientManager;
+    friend class Muxer;
     friend class TCP;
-    friend class SockConn;
 };
 
 #endif /* Client_hpp */

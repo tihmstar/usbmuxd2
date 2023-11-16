@@ -18,17 +18,17 @@
 
 class WIFIDevice : public Device, tihmstar::Manager {
     std::weak_ptr<WIFIDevice> _selfref;
-    std::string _ipaddr;
+    std::vector<std::string> _ipaddr;
     std::string _serviceName;
     heartbeat_client_t _hbclient;
     plist_t _hbrsp;
     idevice_t _idev;
 
-    virtual void loopEvent() override;
+    virtual bool loopEvent() override;
     virtual void beforeLoop() override;
 
 public:
-    WIFIDevice(std::string uuid, std::string ipaddr, std::string serviceName, std::shared_ptr<gref_Muxer> mux);
+    WIFIDevice(Muxer *mux, std::string uuid, std::vector<std::string> ipaddr, std::string serviceName);
     WIFIDevice(const WIFIDevice &) =delete; //delete copy constructor
     WIFIDevice(WIFIDevice &&o) = delete; //move constructor
     virtual ~WIFIDevice() override;

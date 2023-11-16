@@ -11,8 +11,11 @@
 
 #include "../Muxer.hpp"
 #include "DeviceManager.hpp"
-#include "WIFIDeviceManager.hpp"
 #include "../Devices/WIFIDevice.hpp"
+
+#include <map>
+
+#include <poll.h>
 
 extern "C"{
     typedef uint32_t DNSServiceFlags;
@@ -30,18 +33,28 @@ extern "C"{
         const char  *replyDomain,
         void        *context
     );
-    
+
     typedef void (*DNSServiceResolveReply)(
-    DNSServiceRef sdRef,
-    DNSServiceFlags flags,
-    uint32_t interfaceIndex,
-    DNSServiceErrorType errorCode,
-    const char                          *fullname,
-    const char                          *hosttarget,
-    uint16_t port,                                   /* In network byte order */
-    uint16_t txtLen,
-    const unsigned char                 *txtRecord,
-    void                                *context
+        DNSServiceRef sdRef,
+        DNSServiceFlags flags,
+        uint32_t interfaceIndex,
+        DNSServiceErrorType errorCode,
+        const char  *fullname,
+        const char  *hosttarget,
+        uint16_t port, /* In network byte order */
+        uint16_t txtLen,
+        const unsigned char *txtRecord,
+        void *context
+    );
+    typedef void (*DNSServiceGetAddrInfoReply)(
+        DNSServiceRef sdRef,
+        DNSServiceFlags flags,
+        uint32_t interfaceIndex,
+        DNSServiceErrorType errorCode,
+        const char *hostname,
+        const struct sockaddr *address,
+        uint32_t ttl,
+        void *context
     );
     
     DNSServiceErrorType DNSServiceBrowse(
@@ -66,34 +79,43 @@ extern "C"{
     int DNSServiceRefSockFD(DNSServiceRef sdRef);
     DNSServiceErrorType DNSServiceProcessResult(DNSServiceRef sdRef);
     void DNSServiceRefDeallocate(DNSServiceRef sdRef);
+
+    DNSServiceErrorType DNSServiceGetAddrInfo(
+        DNSServiceRef *sdRef,
+        DNSServiceFlags flags,
+        uint32_t interfaceIndex,
+        DNSServiceProtocol protocol,
+        const char *hostname,
+        DNSServiceGetAddrInfoReply callBack,
+        void *context
+    );
 };
 
 class WIFIDeviceManager : public DeviceManager{
-private: //for lifecycle management only
-    tihmstar::Event _finalUnrefEvent;
-    std::shared_ptr<gref_WIFIDeviceManager> _ref;
-
 private:
-    std::shared_ptr<gref_WIFIDeviceManager> *_wifi_cb_refarg;
+    std::set<WIFIDevice *> _children; //raw ptr to shared objec, but we will never dereference it!
+    std::mutex _childrenLck;
+    tihmstar::Event _childrenEvent;
 
     DNSServiceRef _client;
     int _dns_sd_fd;
-    fd_set _readfds;
-    int _nfds;
-    struct timeval _tv;
     std::vector<DNSServiceRef> _resolveClients;
-    
-    virtual void loopEvent() override;
+    std::vector<DNSServiceRef> _removeClients;
+    std::vector<struct pollfd> _pfds;
+    std::map<DNSServiceRef, DNSServiceRef> _linkedClients;
+    std::map<DNSServiceRef, std::vector<std::string>> _clientAddrs;
+
+    virtual bool loopEvent() override;
 public:
-    WIFIDeviceManager(std::shared_ptr<gref_Muxer> mux);
+    WIFIDeviceManager(Muxer *mux);
     virtual ~WIFIDeviceManager() override;
         
     void device_add(std::shared_ptr<WIFIDevice> dev);
     void kill() noexcept;
     
-    friend gref_WIFIDeviceManager;
     friend void browse_reply(DNSServiceRef sdref, const DNSServiceFlags flags, uint32_t ifIndex, DNSServiceErrorType errorCode, const char *replyName, const char *replyType, const char *replyDomain, void *context) noexcept;
     friend void resolve_reply(DNSServiceRef sdRef, DNSServiceFlags flags, uint32_t interfaceIndex, DNSServiceErrorType errorCode, const char*fullname, const char*hosttarget, uint16_t port, uint16_t txtLen, const unsigned char*txtRecord, void*context) noexcept;
+    friend void getaddr_reply(DNSServiceRef sdRef, DNSServiceFlags flags, uint32_t interfaceIndex, DNSServiceErrorType errorCode, const char *hostname, const struct sockaddr *address, uint32_t ttl, void *context) noexcept;
 };
 
 

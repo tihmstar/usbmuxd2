@@ -24,14 +24,14 @@ enum loglevel log_level = LL_DEBUG;
 enum loglevel log_level = LL_INFO;
 #endif
 
-void log_enable_syslog(){
+void log_enable_syslog(void){
     if (!log_syslog) {
         openlog("usbmuxd", LOG_PID, 0);
         log_syslog = 1;
     }
 }
 
-void log_disable_syslog(){
+void log_disable_syslog(void){
     if (log_syslog) {
         closelog();
         log_syslog = 0;

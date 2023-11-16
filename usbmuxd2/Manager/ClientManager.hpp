@@ -2,31 +2,39 @@
 //  ClientManager.hpp
 //  usbmuxd2
 //
-//  Created by tihmstar on 18.12.20.
+//  Created by tihmstar on 20.07.23.
 //
 
 #ifndef ClientManager_hpp
 #define ClientManager_hpp
 
-#include <libgeneral/Manager.hpp>
 #include "Muxer.hpp"
+#include <libgeneral/Manager.hpp>
+#include <libgeneral/DeliveryEvent.hpp>
 
 class ClientManager : public tihmstar::Manager{
-    std::shared_ptr<gref_Muxer> _mux;
+    Muxer *_mux; //not owned
     uint64_t _clientNumber;
     int _listenfd;
+    int _wakePipe[2];
+    std::set<Client *> _children; //raw ptr to shared objec, but we will never dereference it!
+    std::mutex _childrenLck;
+    tihmstar::Event _childrenEvent;
+    std::thread _cliReaperThread;
+    tihmstar::DeliveryEvent<std::shared_ptr<Client>> _reapClients;
     
     virtual void stopAction() noexcept override;
-    virtual void loopEvent() override;
+    virtual bool loopEvent() override;
 
-    
+    void reaper_runloop();
+
     int accept_client();
-    void handle_client(int client_fd);
-    
+    void handle_client(int client_fd);    
 public:
-    ClientManager(std::shared_ptr<gref_Muxer> mux);
+    ClientManager(Muxer *mux);
     virtual ~ClientManager() override;
 
+    friend Client;
 };
 
 #endif /* ClientManager_hpp */

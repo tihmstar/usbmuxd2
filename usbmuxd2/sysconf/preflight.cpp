@@ -9,7 +9,6 @@
 #include "preflight.hpp"
 
 #include <libgeneral/macros.h>
-#include "../Device.hpp"
 #include "sysconf.hpp"
 #include <string.h>
 #include <stdio.h>
@@ -55,8 +54,9 @@ static void pairing_callback(const char* notification, void* userdata) noexcept{
 
     cretassure(!(lret = lockdownd_client_new(dev, &lockdown, "usbmuxd")),"%s: ERROR: Could not connect to lockdownd on device %s, lockdown error %d", __func__, dev->udid, lret);
     if (strcmp(notification, "com.apple.mobile.lockdown.request_pair") == 0) {
-        info("%s: user trusted this computer on device %s, pairing now", __func__, dev->udid);
+        debug("%s: user trusted this computer on device %s, pairing now", __func__, dev->udid);
         cretassure(!(lret = lockdownd_pair(lockdown, NULL)), "%s: ERROR: Pair failed for device %s, lockdown error %d", __func__, dev->udid, lret);
+        info("Device %s is now paired", dev->udid);
     } else if (strcmp(notification, "com.apple.mobile.lockdown.request_host_buid") == 0) {
         lockdownd_set_untrusted_host_buid(lockdown);
     }
@@ -64,7 +64,6 @@ error:
     if (lockdown)
         lockdownd_client_free(lockdown);
     if (cb_data) {
-
         std::thread delthread([](np_cb_data *cb_data){
             debug("deleing pairing_callback cb_data(%p)",cb_data);
             if (cb_data->np){ //this needs to be set!
@@ -77,7 +76,6 @@ error:
             safeFree(cb_data);
         },cb_data);
         delthread.detach();
-
     }
 }
 
@@ -196,7 +194,17 @@ pairing_required:
     //otherwise something unexpected happened
 
     //this works starting with iOS 7, otherwise we're done pairing anyways
-    retassure(lret == LOCKDOWN_E_PAIRING_DIALOG_RESPONSE_PENDING,"%s: Device %s in unexpected pair state %d", __func__, serial,lret);
+    switch (lret) {
+        case LOCKDOWN_E_PAIRING_DIALOG_RESPONSE_PENDING:
+            break;
+        case LOCKDOWN_E_RECEIVE_TIMEOUT:
+            reterror("%s: Device %s in unexpected pair state LOCKDOWN_E_RECEIVE_TIMEOUT'", __func__, serial,lret);
+        case LOCKDOWN_E_USER_DENIED_PAIRING:
+            reterror("%s: Device %s in unexpected pair state LOCKDOWN_E_USER_DENIED_PAIRING'", __func__, serial,lret);
+            
+        default:
+            reterror("%s: Device %s in unexpected pair state %d", __func__, serial,lret);
+    }
 
     retassure((lret = lockdownd_start_service(lockdown, "com.apple.mobile.insecure_notification_proxy", &service)) == LOCKDOWN_E_SUCCESS, "%s: ERROR: Could not start insecure_notification_proxy on %s, lockdown error %d", __func__, serial, lret);
 
