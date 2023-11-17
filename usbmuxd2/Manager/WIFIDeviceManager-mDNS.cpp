@@ -134,14 +134,14 @@ void browse_reply(DNSServiceRef sdref, const DNSServiceFlags flags, uint32_t ifI
     DNSServiceRef resolvClient = NULL;
     int resolvfd = -1;
 
-    const char *op = (flags & kDNSServiceFlagsAdd) ? "Add" : "Rmv";
-        printf("%s %8X %3d %-20s %-20s %s\n",
-               op, flags, ifIndex, replyDomain, replyType, replyName);
-    
     if (!(flags & kDNSServiceFlagsAdd)) {
-        debug("ignoring event=%d. We only care about Add events at the moment",flags);
+//        debug("ignoring event=%d. We only care about Add events at the moment",flags);
         return;
     }
+    
+    const char *op = (flags & kDNSServiceFlagsAdd) ? "Add" : "Rmv";
+    debug("%s %8X %3d %-20s %-20s %s",
+           op, flags, ifIndex, replyDomain, replyType, replyName);
     
     cassure(!(res = DNSServiceResolve(&resolvClient, 0, kDNSServiceInterfaceIndexAny, replyName, replyType, replyDomain, resolve_reply, context)));
 
