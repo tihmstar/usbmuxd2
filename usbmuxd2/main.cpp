@@ -164,25 +164,25 @@ static void notify_parent(int status){
 static void usage(){
     printf("Usage: %s [OPTIONS]\n", PACKAGE_NAME);
     printf("Expose a socket to multiplex connections from and to iOS devices.\n\n");
-    printf("  -h, --help\t\tPrint this message.\n");
-    printf("  -d, --daemonize\tDo daemonize\n");
-    printf("  -l, --logfile=LOGFILE\tLog (append) to LOGFILE instead of stderr or syslog.\n");
+    printf("  -h, --help\t\t\tPrint this message.\n");
+    printf("  -d, --daemonize\t\tDo daemonize\n");
+    printf("  -l, --logfile=LOGFILE\t\tLog (append) to LOGFILE instead of stderr or syslog.\n");
 #ifdef WANT_SYSTEMD
-    printf("  -s, --systemd\t\tRun in systemd operation mode (implies -z and -f).\n");
+    printf("  -s, --systemd\t\t\tRun in systemd operation mode (implies -z and -f).\n");
 #endif
-    printf("  -U, --user USER\tChange to this user after startup (needs USB privileges).\n");
-    printf("  -v, --verbose\t\tBe verbose (use twice or more to increase).\n");
-    printf("  -V, --version\t\tPrint version information and exit.\n");
-    printf("  -z, --enable-exit\tEnable \"--exit\" request from other instances and exit\n");
-    printf("                   \tautomatically if no device is attached.\n");
-    printf("  -x, --exit\t\tNotify a running instance to exit if there are no devices\n");
-    printf("            \t\tconnected (sends SIGUSR1 to running instance) and exit.\n");
-    printf("  -X, --force-exit\tNotify a running instance to exit even if there are still\n");
-    printf("                  \tdevices connected (always works) and exit.\n");
-    printf("      --debug\tEnable debug logging\n");
+    printf("  -U, --user USER\t\tChange to this user after startup (needs USB privileges).\n");
+    printf("  -v, --verbose\t\t\tBe verbose (use twice or more to increase).\n");
+    printf("  -V, --version\t\t\tPrint version information and exit.\n");
+    printf("  -z, --enable-exit\t\tEnable \"--exit\" request from other instances and exit\n");
+    printf("                   \t\tautomatically if no device is attached.\n");
+    printf("  -x, --exit\t\t\tNotify a running instance to exit if there are no devices\n");
+    printf("            \t\t\tconnected (sends SIGUSR1 to running instance) and exit.\n");
+    printf("  -X, --force-exit\t\tNotify a running instance to exit even if there are still\n");
+    printf("                  \t\tdevices connected (always works) and exit.\n");
+    printf("      --debug\t\t\tEnable debug logging\n");
     printf("      --allow-heartless-wifi\tAllow WIFI devices without heartbeat to show up (needed for WIFI pairing)\n");
-    printf("      --nousb\tDo not start USBDeviceManager\n");
-    printf("      --nowifi\tDo not start WIFIDeviceManager\n");
+    printf("      --nousb\t\t\tDo not start USBDeviceManager\n");
+    printf("      --nowifi\t\t\tDo not start WIFIDeviceManager\n");
     printf("\n");
 }
 
