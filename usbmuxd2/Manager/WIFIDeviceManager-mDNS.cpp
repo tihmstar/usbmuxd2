@@ -55,22 +55,33 @@ void getaddr_reply(DNSServiceRef sdRef, DNSServiceFlags flags, uint32_t interfac
 
 
     if (!(flags & kDNSServiceFlagsMoreComing)) {
+        bool notifyadd = true;
         std::string serviceName = addrs.front();
         addrs.erase(addrs.begin());
         
         std::string macAddr{serviceName.substr(0,serviceName.find("@"))};
         std::string uuid;
-        try{
-            uuid = sysconf_udid_for_macaddr(macAddr);
-        }catch (tihmstar::exception &e){
-            creterror("failed to find uuid for mac=%s with error=%d (%s)",macAddr.c_str(),e.code(),e.what());
+        if (strstr(serviceName.c_str(), "_remotepairing-manual-pairing._tcp")) {
+            uuid = "WIFIPAIR-"+serviceName.substr(0,serviceName.find("."));
+            macAddr = {};
+            if (devmgr->_mux->have_wifi_device_with_ip(addrs)) goto error;
+            notifyadd = false;
+        }else{
+            try{
+                uuid = sysconf_udid_for_macaddr(macAddr);
+            }catch (tihmstar::exception &e){
+                creterror("failed to find uuid for mac=%s with error=%d (%s)",macAddr.c_str(),e.code(),e.what());
+            }
+            if (devmgr->_mux->have_wifi_device_with_mac(macAddr)) goto error;
+            devmgr->_mux->delete_wifi_pairing_device_with_ip(addrs);
+            notifyadd = true;
         }
     
-        if (!devmgr->_mux->have_wifi_device(macAddr)) {
+        {
             std::shared_ptr<WIFIDevice> dev = nullptr;
             try{
                 dev = std::make_shared<WIFIDevice>(devmgr->_mux, devmgr, uuid, addrs, serviceName, interfaceIndex);
-                devmgr->device_add(dev); dev = NULL;
+                devmgr->device_add(dev, notifyadd); dev = NULL;
             } catch (tihmstar::exception &e){
                 creterror("failed to construct device with error=%d (%s)",e.code(),e.what());
             }
@@ -123,15 +134,15 @@ void browse_reply(DNSServiceRef sdref, const DNSServiceFlags flags, uint32_t ifI
     DNSServiceRef resolvClient = NULL;
     int resolvfd = -1;
 
+    const char *op = (flags & kDNSServiceFlagsAdd) ? "Add" : "Rmv";
+        printf("%s %8X %3d %-20s %-20s %s\n",
+               op, flags, ifIndex, replyDomain, replyType, replyName);
+    
     if (!(flags & kDNSServiceFlagsAdd)) {
         debug("ignoring event=%d. We only care about Add events at the moment",flags);
         return;
     }
-
-    const char *op = (flags & kDNSServiceFlagsAdd) ? "Add" : "Rmv";
-        printf("%s %8X %3d %-20s %-20s %s\n",
-               op, flags, ifIndex, replyDomain, replyType, replyName);
-
+    
     cassure(!(res = DNSServiceResolve(&resolvClient, 0, kDNSServiceInterfaceIndexAny, replyName, replyType, replyDomain, resolve_reply, context)));
 
     cassure((resolvfd = DNSServiceRefSockFD(resolvClient))>0);
@@ -140,9 +151,10 @@ void browse_reply(DNSServiceRef sdref, const DNSServiceFlags flags, uint32_t ifI
         .events = POLLIN
     });
 
-    devmgr->_resolveClients.push_back(resolvClient);
-
 error:
+    if (resolvClient){
+        devmgr->_resolveClients.push_back(resolvClient);
+    }
     if (err) {
         error("browse_reply failed with error=%d",err);
     }
@@ -152,23 +164,21 @@ error:
 #pragma mark WIFIDevice
 
 WIFIDeviceManager::WIFIDeviceManager(Muxer *mux)
-: DeviceManager(mux), _client(NULL), _dns_sd_fd(-1), _wakePipe{}
+: DeviceManager(mux), _client(NULL), _clientPairing(NULL), _dns_sd_fd(-1), _dns_sd_pairing_fd(-1), _wakePipe{}
 {
     int err = 0;
     debug("WIFIDeviceManager mDNS-client");
     assure(!(err = DNSServiceBrowse(&_client, 0, kDNSServiceInterfaceIndexAny, "_apple-mobdev2._tcp", "", browse_reply, this)));
+    assure(!(err = DNSServiceBrowse(&_clientPairing, 0, kDNSServiceInterfaceIndexAny, "_remotepairing-manual-pairing._tcp", "", browse_reply, this)));
 
     assure((_dns_sd_fd = DNSServiceRefSockFD(_client))>0);
-    _pfds.push_back({
-        .fd = _dns_sd_fd,
-        .events = POLLIN
-    });
-    
+    _pfds.push_back({.fd = _dns_sd_fd, .events = POLLIN});
+
+    assure((_dns_sd_pairing_fd = DNSServiceRefSockFD(_clientPairing))>0);
+    _pfds.push_back({.fd = _dns_sd_pairing_fd, .events = POLLIN});
+
     assure(!pipe(_wakePipe));
-    _pfds.push_back({
-        .fd = _wakePipe[0],
-        .events = POLLIN
-    });
+    _pfds.push_back({.fd = _wakePipe[0], .events = POLLIN});
     
     _devReaperThread = std::thread([this]{
         reaper_runloop();
@@ -176,7 +186,7 @@ WIFIDeviceManager::WIFIDeviceManager(Muxer *mux)
 }
 
 WIFIDeviceManager::~WIFIDeviceManager(){
-    safeFreeCustom(_client, DNSServiceRefDeallocate);
+    stopLoop();
     if (_children.size()) {
         debug("waiting for wifi children to die...");
         std::unique_lock<std::mutex> ul(_childrenLck);
@@ -191,16 +201,21 @@ WIFIDeviceManager::~WIFIDeviceManager(){
     }
     _reapDevices.kill();
     _devReaperThread.join();
-    stopLoop();
+    {
+        for (auto rc : _resolveClients) 
+            safeFreeCustom(rc, DNSServiceRefDeallocate);
+        _resolveClients.clear();
+    }
+    safeFreeCustom(_client, DNSServiceRefDeallocate);
+    safeFreeCustom(_clientPairing, DNSServiceRefDeallocate);
     safeClose(_wakePipe[0]);
     safeClose(_wakePipe[1]);
-    safeFreeCustom(_client, DNSServiceRefDeallocate);
 }
 
-void WIFIDeviceManager::device_add(std::shared_ptr<WIFIDevice> dev){
+void WIFIDeviceManager::device_add(std::shared_ptr<WIFIDevice> dev, bool notify){
     dev->_selfref = dev;
     _children.insert(dev.get());
-    _mux->add_device(dev);
+    _mux->add_device(dev, notify);
 }
 
 bool WIFIDeviceManager::loopEvent(){
@@ -213,16 +228,24 @@ bool WIFIDeviceManager::loopEvent(){
                 if (target != _resolveClients.end()){
                     DNSServiceRef tgt = *target;
                     _resolveClients.erase(target, _resolveClients.end());
-                    int rcfd = DNSServiceRefSockFD(tgt);
-                    auto iter = std::find_if(_pfds.begin(), _pfds.end(), [&](const struct pollfd &a){
-                        return a.fd == rcfd;
-                    });
-                    assert(iter != _pfds.end());
-                    _pfds.erase(iter);
                     DNSServiceRefDeallocate(tgt);
                 }
             }
             _removeClients.clear();
+            _pfds.clear();
+            {
+                _pfds.push_back({.fd = _dns_sd_fd, .events = POLLIN});
+                _pfds.push_back({.fd = _dns_sd_pairing_fd, .events = POLLIN});
+                _pfds.push_back({.fd = _wakePipe[0], .events = POLLIN});
+            }
+            for (auto c : _resolveClients) {
+                int cfd = DNSServiceRefSockFD(c);
+                if (cfd != -1){
+                    _pfds.push_back({.fd = cfd, .events = POLLIN});
+                }else{
+                    _removeClients.push_back(c);
+                }
+            }
         });
         DNSServiceErrorType err = 0;
         auto cpy_pfds = _pfds;
@@ -231,6 +254,8 @@ bool WIFIDeviceManager::loopEvent(){
                 pfd.revents &= ~POLLIN;
                 if (pfd.fd == DNSServiceRefSockFD(_client)) {
                     assure(!(err |= DNSServiceProcessResult(_client)));
+                }else if (pfd.fd == DNSServiceRefSockFD(_clientPairing)) {
+                    assure(!(err |= DNSServiceProcessResult(_clientPairing)));
                 }else{
                     for (auto rc : _resolveClients) {
                         int rcfd = DNSServiceRefSockFD(rc);

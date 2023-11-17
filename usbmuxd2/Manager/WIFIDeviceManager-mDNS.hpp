@@ -102,7 +102,9 @@ private:
     tihmstar::DeliveryEvent<std::shared_ptr<WIFIDevice>> _reapDevices;
     
     DNSServiceRef _client;
+    DNSServiceRef _clientPairing;
     int _dns_sd_fd;
+    int _dns_sd_pairing_fd;
     int _wakePipe[2];
     std::vector<DNSServiceRef> _resolveClients;
     std::vector<DNSServiceRef> _removeClients;
@@ -118,7 +120,7 @@ public:
     WIFIDeviceManager(Muxer *mux);
     virtual ~WIFIDeviceManager() override;
         
-    void device_add(std::shared_ptr<WIFIDevice> dev);
+    void device_add(std::shared_ptr<WIFIDevice> dev, bool notify = true);
     
     friend WIFIDevice;
     friend void browse_reply(DNSServiceRef sdref, const DNSServiceFlags flags, uint32_t ifIndex, DNSServiceErrorType errorCode, const char *replyName, const char *replyType, const char *replyDomain, void *context) noexcept;

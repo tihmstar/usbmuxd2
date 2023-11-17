@@ -302,7 +302,7 @@ void Client::processData(const usbmuxd_header *hdr){
 
                 sysconf_set_device_record(record_id.c_str(), p_parsedPairRecord);
 
-                {
+                try{
                     plist_t p_intval = NULL;
                     uint64_t intval = 0;
 
@@ -311,6 +311,8 @@ void Client::processData(const usbmuxd_header *hdr){
 
                     plist_get_uint_val(p_intval, &intval);
                     _mux->notify_device_paired((int)intval);
+                }catch (tihmstar::exception &e){
+                    debug("Failed to notify about successfully pairing of '%s'",record_id.c_str());
                 }
 
                 send_result(hdr->tag, RESULT_OK);

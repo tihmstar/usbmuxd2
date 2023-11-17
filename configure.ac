@@ -42,7 +42,7 @@ CXXFLAGS+=" -std=c++20"
 PKG_CHECK_MODULES(libgeneral, libgeneral >= 39)
 PKG_CHECK_MODULES(libusb, libusb-1.0 >= 1.0.9)
 PKG_CHECK_MODULES(libplist, libplist-2.0 >= 2.2.0)
-PKG_CHECK_MODULES(libimobiledevice, libimobiledevice-1.0 >= 1.2.1, have_limd=yes, have_limd=no)
+PKG_CHECK_MODULES(libimobiledevice, libimobiledevice-1.0 >= 1.3.0, have_limd=yes, have_limd=no)
 PKG_CHECK_MODULES(avahi, avahi-client >= 0.7, have_avahi=yes, have_avahi=no)
 
 AC_ARG_WITH([libimobiledevice],
@@ -77,30 +77,23 @@ if test "x$with_limd" == "xyes"; then
     AC_DEFINE(HAVE_LIBIMOBILEDEVICE, 1, [Define if you have libimobiledevice support])
     AC_SUBST(libimobiledevice_CFLAGS)
     AC_SUBST(libimobiledevice_LIBS)
-
-    if test "x$with_wifi" == "xyes"; then
-      if test "x$have_avahi" = "xyes"; then
-        AC_DEFINE(HAVE_WIFI_AVAHI, 1, [Define if you have avahi])
-        AC_DEFINE(HAVE_WIFI_SUPPORT, 1, [Define if you have wifi support])
-        AC_SUBST(avahi_CFLAGS)
-        AC_SUBST(avahi_LIBS)
-      elif test "x$have_mdns" = "xyes"; then
-        AC_DEFINE(HAVE_WIFI_MDNS, 1, [Define if you have mDNS])
-        AC_DEFINE(HAVE_WIFI_SUPPORT, 1, [Define if you have wifi support])
-      else
-        AC_MSG_ERROR([wifi support requested but no wifi backend could not be found])
-      fi
-    else
-      echo "*** Note: wifi support has been disabled ***"
-    fi
-
   else
     echo "*** Note: libimobiledevice support has been disabled ***"
   fi
-else
-  if test "x$with_wifi" == "xyes"; then
-    AC_MSG_ERROR([wifi support requested but libimobiledevice could not be found])
+fi
+
+if test "x$with_wifi" == "xyes"; then
+  if test "x$have_avahi" = "xyes"; then
+    AC_DEFINE(HAVE_WIFI_AVAHI, 1, [Define if you have avahi])
+    AC_SUBST(avahi_CFLAGS)
+    AC_SUBST(avahi_LIBS)
+  elif test "x$have_mdns" = "xyes"; then
+    AC_DEFINE(HAVE_WIFI_MDNS, 1, [Define if you have mDNS])
+  else
+    AC_MSG_ERROR([wifi support requested but no wifi backend could not be found])
   fi
+else
+  echo "*** Note: wifi support has been disabled ***"
 fi
 
 AC_ARG_WITH([udevrulesdir],

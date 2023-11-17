@@ -31,7 +31,8 @@ Muxer::Muxer(bool doPreflight, bool allowHeartlessWifi)
 , _doPreflight(doPreflight), _allowHeartlessWifi(allowHeartlessWifi)
 , _newid(1)
 {
-    //
+    info("Starting Muxer: preflight=%s allowHeartlessWifi=%s", doPreflight ? "YES" : "NO"
+                                                             , allowHeartlessWifi ? "YES" : "NO");
 }
 
 Muxer::~Muxer(){
@@ -58,7 +59,7 @@ void Muxer::spawnWIFIDeviceManager(){
     _wifidevmgr = new WIFIDeviceManager(this);
     _wifidevmgr->startLoop();
 #else
-    reterror("Not implemented");
+    reterror("Compiled without wifi support");
 #endif
 }
 
@@ -108,7 +109,7 @@ void Muxer::delete_client(std::shared_ptr<Client> cli) noexcept{
 }
 
 #pragma mark Devices
-void Muxer::add_device(std::shared_ptr<Device> dev) noexcept {
+void Muxer::add_device(std::shared_ptr<Device> dev, bool notify) noexcept {
     debug("add_device %s",dev->_serial);
 
     //get id of already connected device but with the other connection type
@@ -168,7 +169,7 @@ void Muxer::add_device(std::shared_ptr<Device> dev) noexcept {
     }
 #endif //HAVE_LIBIMOBILEDEVICE
     
-    notify_device_add(dev);
+    if (notify) notify_device_add(dev);
 }
 
 void Muxer::delete_device(std::shared_ptr<Device> dev) noexcept {
@@ -202,6 +203,22 @@ void Muxer::delete_device(uint8_t bus, uint8_t address) noexcept {
     if (devid != INVALID_ID) notify_device_remove(devid);
 }
 
+void Muxer::delete_wifi_pairing_device_with_ip(std::vector<std::string> ipaddrs) noexcept{
+    guardWrite(_devicesGuard);
+    for (auto dev : _devices){
+        if (dev->_conntype == Device::MUXCONN_WIFI) {
+            WIFIDevice *wifidev = (WIFIDevice*)dev.get();
+            for (auto nip : ipaddrs) {
+                if (strncmp(wifidev->_serial, "WIFIPAIR", sizeof("WIFIPAIR")-1) == 0 &&
+                    std::find(wifidev->_ipaddr.begin(), wifidev->_ipaddr.end(), nip) != wifidev->_ipaddr.end()) {
+                    _devices.erase(dev);
+                    return;
+                }
+            }
+        }
+    }
+}
+
 bool Muxer::have_usb_device(uint8_t bus, uint8_t address) noexcept {
     guardRead(_devicesGuard);
     for (auto dev : _devices){
@@ -215,7 +232,7 @@ bool Muxer::have_usb_device(uint8_t bus, uint8_t address) noexcept {
     return false;
 }
 
-bool Muxer::have_wifi_device(std::string macaddr) noexcept{
+bool Muxer::have_wifi_device_with_mac(std::string macaddr) noexcept{
     guardRead(_devicesGuard);
     for (auto dev : _devices){
         if (dev->_conntype == Device::MUXCONN_WIFI) {
@@ -227,6 +244,22 @@ bool Muxer::have_wifi_device(std::string macaddr) noexcept{
     }
     return false;
 }
+
+bool Muxer::have_wifi_device_with_ip(std::vector<std::string> ipaddrs) noexcept{
+    guardRead(_devicesGuard);
+    for (auto dev : _devices){
+        if (dev->_conntype == Device::MUXCONN_WIFI) {
+            WIFIDevice *wifidev = (WIFIDevice*)dev.get();
+            for (auto nip : ipaddrs) {
+                if (std::find(wifidev->_ipaddr.begin(), wifidev->_ipaddr.end(), nip) != wifidev->_ipaddr.end()) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 
 int Muxer::id_for_device(const char *uuid, Device::mux_conn_type type) noexcept {
     int ret = 0;
