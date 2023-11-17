@@ -55,19 +55,21 @@ ClientManager::~ClientManager(){
     safeClose(_wakePipe[0]);
     safeClose(_wakePipe[1]);
 
-    _reapClients.kill();
-    _cliReaperThread.join();
     if (_children.size()) {
-        debug("waiting for children to die...");
+        debug("waiting for client children to die...");
         std::unique_lock<std::mutex> ul(_childrenLck);
         while (size_t s = _children.size()) {
+            for (auto c : _children) c->kill();
             uint64_t wevent = _childrenEvent.getNextEvent();
             ul.unlock();
-            debug("Need to kill %zu more children",s);
+            debug("Need to kill %zu more client children",s);
             _childrenEvent.waitForEvent(wevent);
             ul.lock();
         }
     }
+    _reapClients.kill();
+    _cliReaperThread.join();
+
     if (_listenfd > 0) {
         int cfd = _listenfd; _listenfd = -1;
         close(cfd);
@@ -102,9 +104,6 @@ void ClientManager::reaper_runloop(){
         }
         //make device go out of scope so it can die in piece
         cli->deconstruct();
-#ifdef XCODE
-        printf(""); //you can use this to set a breakpoint
-#endif
     }
 }
 

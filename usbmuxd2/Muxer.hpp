@@ -26,13 +26,14 @@ class Muxer {
     WIFIDeviceManager *_wifidevmgr;
 
     bool _doPreflight;
+    bool _allowHeartlessWifi;
     int _newid;
     std::set<std::shared_ptr<Device>> _devices;
     tihmstar::GuardAccess _devicesGuard;
     std::set<std::shared_ptr<Client>> _clients;
     tihmstar::GuardAccess _clientsGuard;
 public:
-    Muxer(bool doPreflight = true);
+    Muxer(bool doPreflight = true, bool allowHeartlessWifi = false);
     ~Muxer();
     
 #pragma mark Managers

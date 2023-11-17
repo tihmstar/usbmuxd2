@@ -44,6 +44,7 @@ _isListening(false), _info{}
 
 Client::~Client(){
     debug("[Client] destroying Client %d",_fd);
+    stopLoop();
     {
         std::unique_lock<std::mutex> ul(_parent->_childrenLck);
         _parent->_children.erase(this);
@@ -435,11 +436,12 @@ void Client::send_result(uint32_t tag, uint32_t result){
 void Client::kill() noexcept{
     debug("[Client] killing Client %d",_fd);
     std::shared_ptr<Client> selfref = _selfref.lock();
-    _mux->delete_client(selfref);
     _parent->_reapClients.post(selfref);
 }
 
 void Client::deconstruct() noexcept{
     debug("[Client] deconstructing Client %d",_fd);
+    std::shared_ptr<Client> selfref = _selfref.lock();
+    _mux->delete_client(selfref);
     stopLoop();
 }

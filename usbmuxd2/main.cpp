@@ -165,122 +165,128 @@ static void usage(){
     printf("Usage: %s [OPTIONS]\n", PACKAGE_NAME);
     printf("Expose a socket to multiplex connections from and to iOS devices.\n\n");
     printf("  -h, --help\t\tPrint this message.\n");
-    printf("  -v, --verbose\t\tBe verbose (use twice or more to increase).\n");
-    printf("  -V, --version\t\tPrint version information and exit.\n");
     printf("  -d, --daemonize\tDo daemonize\n");
-    printf("  -U, --user USER\tChange to this user after startup (needs USB privileges).\n");
-    printf("  -z, --enable-exit\tEnable \"--exit\" request from other instances and exit\n");
-    printf("                   \tautomatically if no device is attached.\n");
+    printf("  -l, --logfile=LOGFILE\tLog (append) to LOGFILE instead of stderr or syslog.\n");
 #ifdef WANT_SYSTEMD
     printf("  -s, --systemd\t\tRun in systemd operation mode (implies -z and -f).\n");
 #endif
+    printf("  -U, --user USER\tChange to this user after startup (needs USB privileges).\n");
+    printf("  -v, --verbose\t\tBe verbose (use twice or more to increase).\n");
+    printf("  -V, --version\t\tPrint version information and exit.\n");
+    printf("  -z, --enable-exit\tEnable \"--exit\" request from other instances and exit\n");
+    printf("                   \tautomatically if no device is attached.\n");
     printf("  -x, --exit\t\tNotify a running instance to exit if there are no devices\n");
     printf("            \t\tconnected (sends SIGUSR1 to running instance) and exit.\n");
     printf("  -X, --force-exit\tNotify a running instance to exit even if there are still\n");
     printf("                  \tdevices connected (always works) and exit.\n");
-    printf("  -l, --logfile=LOGFILE\tLog (append) to LOGFILE instead of stderr or syslog.\n");
-    printf("      --nowifi\t do not start WIFIDeviceManager\n");
-    printf("      --nousb\t do not start USBDeviceManager\n");
-    printf("      --debug\t enable debug logging\n");
+    printf("      --debug\tEnable debug logging\n");
+    printf("      --allow-heartless-wifi\tAllow WIFI devices without heartbeat to show up (needed for WIFI pairing)\n");
+    printf("      --nousb\tDo not start USBDeviceManager\n");
+    printf("      --nowifi\tDo not start WIFIDeviceManager\n");
     printf("\n");
 }
 
-
-
 static void parse_opts(int argc, const char **argv){
     static struct option longopts[] = {
-        {"help", no_argument, NULL, 'h'},
-        {"verbose", no_argument, NULL, 'v'},
-        {"version", no_argument, NULL, 'V'},
-        {"daemonize", no_argument, NULL, 'd'},
-        {"enable-exit", no_argument, NULL, 'z'},
+        {"help",                    no_argument,        NULL, 'h'},
+        {"daemonize",               no_argument,        NULL, 'd'},
+        {"logfile",                 required_argument,  NULL, 'l'},
 #ifdef WANT_SYSTEMD
-        {"systemd", no_argument, NULL, 's'},
+        {"systemd",                 no_argument,        NULL, 's'},
 #endif
-        {"exit", no_argument, NULL, 'x'},
-        {"force-exit", no_argument, NULL, 'X'},
-        {"logfile", required_argument, NULL, 'l'},
-        {"user", required_argument, NULL, 'U'},
-        {"nowifi", optional_argument, NULL, '0'},
-        {"nousb", optional_argument, NULL, '1'},
-        {"debug", no_argument, NULL, 2},
-        {NULL, 0, NULL, 0}
+        {"user",                    required_argument,  NULL, 'U'},
+        {"verbose",                 no_argument,        NULL, 'v'},
+        {"version",                 no_argument,        NULL, 'V'},
+        {"exit",                    no_argument,        NULL, 'x'},
+        {"force-exit",              no_argument,        NULL, 'X'},
+        {"enable-exit",             no_argument,        NULL, 'z'},
+        
+        {"allow-heartless-wifi",    no_argument,        NULL,  0 },
+        {"debug",                   no_argument,        NULL,  0 },
+        {"nousb",                   optional_argument,  NULL,  0 },
+        {"nowifi",                  optional_argument,  NULL,  0 },
+        {NULL,                      0,                  NULL,  0 }
     };
-    int c;
-
-#ifdef WANT_SYSTEMD
-    const char* opts_spec = "hvVdzsxXl:U:";
-#else
-    const char* opts_spec = "hvVdzxXl:U:";
-#endif
+    int optindex = 0;
+    int opt = 0;
     
-    while (1) {
-        c = getopt_long(argc, (char*const*)argv, opts_spec, longopts, (int *) 0);
-        if (c == -1) {
-            break;
-        }
-
-        switch (c) {
-        case 'h':
-            usage();
-            exit(0);
-        case 'd':
-            gConfig->daemonize = true;
-            break;
-        case 'v':
-            ++verbose;
-            break;
-        case 'V':
-            printf("%s\n", VERSION_STRING);
-            exit(0);
-        case 'U':
-            gConfig->dropUser = optarg;
-            break;
+    const char* opts_spec = "hdl:"
 #ifdef WANT_SYSTEMD
-        case 's':
-            gConfig->enableExit = true;
-            gConfig->daemonize = false;
-            break;
+                            "s"
 #endif
-        case 'z':
-            gConfig->enableExit = true;
-            break;
-        case '0': //nowifi
-            info("Manually disableing WIFIDeviceManager");
-            gConfig->enableWifiDeviceManager = (!optarg) ? false : atoi(optarg);
-            break;
-        case '1': //nousb
-            info("Manually disableing USBDeviceManager");
-            gConfig->enableUSBDeviceManager = (!optarg) ? false : atoi(optarg);
-            break;
-        case 'x':
-            exit_signal = SIGUSR1;
-            break;
-        case 'X':
-            exit_signal = SIGTERM;
-            break;
-        case 'l':
-            if (!*optarg) {
-                fatal("ERROR: --logfile requires a non-empty filename");
+                            "U:vVxXz";
+    
+    
+    while ((opt = getopt_long(argc, (char* const *)argv, opts_spec, longopts, &optindex)) >= 0) {
+        switch (opt) {
+            case 0: //long opts
+            {
+                std::string curopt = longopts[optindex].name;
+                
+                if (curopt == "allow-heartless-wifi") {
+                    gConfig->allowHeartlessWifi = true;
+                }else if (curopt == "debug") {
+                    gConfig->debugLevel++;
+                }else if (curopt == "nousb") {
+                    info("Manually disableing USBDeviceManager");
+                    gConfig->enableUSBDeviceManager = (!optarg) ? false : atoi(optarg);
+                }else if (curopt == "nowifi") {
+                    info("Manually disabling WIFIDeviceManager");
+                    gConfig->enableWifiDeviceManager = (!optarg) ? false : atoi(optarg);
+                }
+            }
+                break;
+            case 'h':
+                usage();
+                exit(0);
+                break;
+            case 'd':
+                gConfig->daemonize = true;
+                break;
+            case 'l':
+                if (!*optarg) {
+                    fatal("ERROR: --logfile requires a non-empty filename");
+                    usage();
+                    exit(2);
+                }
+                if (gConfig->useLogfile) {
+                    fatal("ERROR: --logfile cannot be used multiple times");
+                    exit(2);
+                }
+                if (freopen(optarg, "a", stderr)) {
+                    fatal("ERROR: fdreopen: %s", strerror(errno));
+                } else {
+                    gConfig->useLogfile = 1;
+                }
+                break;
+            case 'U':
+                gConfig->dropUser = optarg;
+                break;
+#ifdef WANT_SYSTEMD
+            case 's':
+                gConfig->enableExit = true;
+                gConfig->daemonize = false;
+                break;
+#endif
+            case 'v':
+                ++verbose;
+                break;
+            case 'V':
+                printf("%s\n", VERSION_STRING);
+                exit(0);
+            case 'x':
+                exit_signal = SIGUSR1;
+                break;
+            case 'X':
+                exit_signal = SIGTERM;
+                break;
+            case 'z':
+                gConfig->enableExit = true;
+                break;
+                
+            default:
                 usage();
                 exit(2);
-            }
-            if (gConfig->useLogfile) {
-                fatal("ERROR: --logfile cannot be used multiple times");
-                exit(2);
-            }
-            if (freopen(optarg, "a", stderr)) {
-                fatal("ERROR: fdreopen: %s", strerror(errno));
-            } else {
-                gConfig->useLogfile = 1;
-            }
-            break;
-        case 2: //debug
-                gConfig->debugLevel++;
-                break;
-        default:
-            usage();
-            exit(2);
         }
     }
 }
@@ -378,7 +384,7 @@ int main(int argc, const char * argv[]) {
     }
     
     //starting
-    mux = new Muxer(gConfig->doPreflight);
+    mux = new Muxer(gConfig->doPreflight, gConfig->allowHeartlessWifi);
 
     try{
         mux->spawnClientManager();

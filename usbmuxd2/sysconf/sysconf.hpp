@@ -24,6 +24,7 @@ class Config{
 public:
     //config
     bool doPreflight;
+    bool allowHeartlessWifi;
     bool enableWifiDeviceManager;
     bool enableUSBDeviceManager;
 

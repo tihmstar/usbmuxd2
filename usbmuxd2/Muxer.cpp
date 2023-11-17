@@ -26,9 +26,9 @@
 #define MAXID (INT_MAX/2)
 #define INVALID_ID (MAXID + 1)
 
-Muxer::Muxer(bool doPreflight)
+Muxer::Muxer(bool doPreflight, bool allowHeartlessWifi)
 : _climgr(nullptr), _usbdevmgr(nullptr), _wifidevmgr(nullptr)
-, _doPreflight(doPreflight)
+, _doPreflight(doPreflight), _allowHeartlessWifi(allowHeartlessWifi)
 , _newid(1)
 {
     //
@@ -37,6 +37,7 @@ Muxer::Muxer(bool doPreflight)
 Muxer::~Muxer(){
     safeDelete(_climgr);
     safeDelete(_usbdevmgr);
+    safeDelete(_wifidevmgr);
 }
 
 #pragma mark Managers
@@ -149,7 +150,9 @@ void Muxer::add_device(std::shared_ptr<Device> dev) noexcept {
             wifidev->startLoop();
         }catch (tihmstar::exception &e){
             error("Failed to start WIFIDevice %s with error=%d (%s)",wifidev->_serial,e.code(),e.what());
-            delete_device(dev);
+            if (!_allowHeartlessWifi){
+                delete_device(wifidev);
+            }
             return;
         }
     }
@@ -435,29 +438,28 @@ plist_t Muxer::getDevicePlist(std::shared_ptr<Device> dev) noexcept{
         std::string ipaddr = wifidev->_ipaddr.front();
 
         for (auto ipaddr : wifidev->_ipaddr) {
+            char buf[0x80] = {};
             if (ipaddr.find(":") == std::string::npos){
                 //this is an IPv4 addr
-                char buf[0x10] = {};
                 ((uint32_t*)buf)[0] = 0x0210;
                 ((uint32_t*)buf)[1] = inet_addr(ipaddr.c_str());
                 plist_dict_set_item(p_props, "NetworkAddress", plist_new_data(buf, sizeof(buf)));
             }else{
                 //this is an IPv6 addr
-                struct DataStruct{
-                    uint8_t len;
-                    uint8_t family;
-                    struct in6_addr ip6;
-                } data = {
-                    .len = sizeof(DataStruct),
-                    .family = 0x1E
+                struct sockaddr_in6 *ip6 = (struct sockaddr_in6 *)buf;
+                *ip6 ={
+                    .sin6_len = sizeof(sockaddr_in6),
+                    .sin6_family = 0x1E, //AF_INET6 (bsd)
+                    .sin6_scope_id = wifidev->_interfaceIndex
                 };
-                if (!inet_pton(AF_INET6, ipaddr.c_str(), &data.ip6)) continue;
-                plist_dict_set_item(p_props, "NetworkAddress", plist_new_data((char*)&data, sizeof(data)));
+                if (!inet_pton(AF_INET6, ipaddr.c_str(), &ip6->sin6_addr)) continue;
+                plist_dict_set_item(p_props, "NetworkAddress", plist_new_data(buf, sizeof(buf)));
             }
             break;
         }
-        
-#warning TODO missing fields: InterfaceIndex (integer)
+        if (wifidev->_interfaceIndex) {
+            plist_dict_set_item(p_props, "InterfaceIndex", plist_new_int(wifidev->_interfaceIndex));
+        }
     }else{
         assert(0); //THIS SHOULD NOT HAPPEN!!!
     }

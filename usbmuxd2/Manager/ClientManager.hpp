@@ -17,7 +17,7 @@ class ClientManager : public tihmstar::Manager{
     uint64_t _clientNumber;
     int _listenfd;
     int _wakePipe[2];
-    std::set<Client *> _children; //raw ptr to shared objec, but we will never dereference it!
+    std::set<Client *> _children; //raw ptr to shared objec
     std::mutex _childrenLck;
     tihmstar::Event _childrenEvent;
     std::thread _cliReaperThread;

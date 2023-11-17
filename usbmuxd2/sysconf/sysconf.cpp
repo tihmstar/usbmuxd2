@@ -341,6 +341,7 @@ bool sysconf_try_getconfig_bool(std::string key, bool defaultValue){
 Config::Config() :
 //config
 doPreflight(false),
+allowHeartlessWifi(false),
 enableWifiDeviceManager(false),
 enableUSBDeviceManager(false),
 //commandline

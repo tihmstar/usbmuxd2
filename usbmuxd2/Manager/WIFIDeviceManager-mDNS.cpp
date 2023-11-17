@@ -16,7 +16,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/select.h>
-
+#include <unistd.h>
 
 #ifdef HAVE_WIFI_MDNS
 
@@ -69,7 +69,7 @@ void getaddr_reply(DNSServiceRef sdRef, DNSServiceFlags flags, uint32_t interfac
         if (!devmgr->_mux->have_wifi_device(macAddr)) {
             std::shared_ptr<WIFIDevice> dev = nullptr;
             try{
-                dev = std::make_shared<WIFIDevice>(devmgr->_mux, uuid, addrs, serviceName);
+                dev = std::make_shared<WIFIDevice>(devmgr->_mux, devmgr, uuid, addrs, serviceName, interfaceIndex);
                 devmgr->device_add(dev); dev = NULL;
             } catch (tihmstar::exception &e){
                 creterror("failed to construct device with error=%d (%s)",e.code(),e.what());
@@ -152,32 +152,55 @@ error:
 #pragma mark WIFIDevice
 
 WIFIDeviceManager::WIFIDeviceManager(Muxer *mux)
-: DeviceManager(mux), _client(NULL), _dns_sd_fd(-1)
+: DeviceManager(mux), _client(NULL), _dns_sd_fd(-1), _wakePipe{}
 {
     int err = 0;
     debug("WIFIDeviceManager mDNS-client");
     assure(!(err = DNSServiceBrowse(&_client, 0, kDNSServiceInterfaceIndexAny, "_apple-mobdev2._tcp", "", browse_reply, this)));
 
     assure((_dns_sd_fd = DNSServiceRefSockFD(_client))>0);
-
     _pfds.push_back({
         .fd = _dns_sd_fd,
         .events = POLLIN
+    });
+    
+    assure(!pipe(_wakePipe));
+    _pfds.push_back({
+        .fd = _wakePipe[0],
+        .events = POLLIN
+    });
+    
+    _devReaperThread = std::thread([this]{
+        reaper_runloop();
     });
 }
 
 WIFIDeviceManager::~WIFIDeviceManager(){
     safeFreeCustom(_client, DNSServiceRefDeallocate);
+    if (_children.size()) {
+        debug("waiting for wifi children to die...");
+        std::unique_lock<std::mutex> ul(_childrenLck);
+        while (size_t s = _children.size()) {
+            for (auto c : _children) c->kill();
+            uint64_t wevent = _childrenEvent.getNextEvent();
+            ul.unlock();
+            debug("Need to kill %zu more wifi children",s);
+            _childrenEvent.waitForEvent(wevent);
+            ul.lock();
+        }
+    }
+    _reapDevices.kill();
+    _devReaperThread.join();
+    stopLoop();
+    safeClose(_wakePipe[0]);
+    safeClose(_wakePipe[1]);
+    safeFreeCustom(_client, DNSServiceRefDeallocate);
 }
 
 void WIFIDeviceManager::device_add(std::shared_ptr<WIFIDevice> dev){
     dev->_selfref = dev;
+    _children.insert(dev.get());
     _mux->add_device(dev);
-}
-
-void WIFIDeviceManager::kill() noexcept{
-    debug("[WIFIDeviceManager] killing WIFIDeviceManager");
-    stopLoop();
 }
 
 bool WIFIDeviceManager::loopEvent(){
@@ -202,7 +225,8 @@ bool WIFIDeviceManager::loopEvent(){
             _removeClients.clear();
         });
         DNSServiceErrorType err = 0;
-        for (auto pfd : _pfds) {
+        auto cpy_pfds = _pfds;
+        for (auto pfd : cpy_pfds) {
             if (pfd.revents & POLLIN) {
                 pfd.revents &= ~POLLIN;
                 if (pfd.fd == DNSServiceRefSockFD(_client)) {
@@ -222,6 +246,23 @@ bool WIFIDeviceManager::loopEvent(){
         reterror("poll() returned %d errno %d %s\n", res, errno, strerror(errno));
     }
     return true;
+}
+
+void WIFIDeviceManager::stopAction() noexcept{
+    safeClose(_wakePipe[1]);
+}
+
+void WIFIDeviceManager::reaper_runloop(){
+    while (true) {
+        std::shared_ptr<WIFIDevice>dev;
+        try {
+            dev = _reapDevices.wait();
+        } catch (...) {
+            break;
+        }
+        //make device go out of scope so it can die in piece
+        dev->deconstruct();
+    }
 }
 
 #endif //HAVE_WIFI_MDNS

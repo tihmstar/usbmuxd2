@@ -141,13 +141,15 @@ void USBDevice::reaper_runloop(){
 
 #pragma mark inheritence provider
 void USBDevice::kill() noexcept{
-    debug("[Killing] device %s",_serial);
+    debug("[Killing] USBDevice %s",_serial);
     std::shared_ptr<USBDevice> selfref = _selfref.lock();
-    _mux->delete_device(selfref);
     _parent->_reapDevices.post(selfref);
 }
 
 void USBDevice::deconstruct() noexcept{
+    debug("[Deconstructing] USBDevice %s",_serial);
+    std::shared_ptr<USBDevice> selfref = _selfref.lock();
+    _mux->delete_device(selfref);
     //cancel all rx transfers
     {
         guardRead(_rx_xfers_Guard);

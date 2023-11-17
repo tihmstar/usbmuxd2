@@ -45,7 +45,7 @@ class USBDeviceManager : public DeviceManager{
     
     std::set<uint16_t> _constructing;
     tihmstar::GuardAccess _constructingGuard;
-    std::set<USBDevice *> _children; //raw ptr to shared objec, but we will never dereference it!
+    std::set<USBDevice *> _children;  //raw ptr to shared objec
     std::mutex _childrenLck;
     tihmstar::Event _childrenEvent;
     std::thread _devReaperThread;

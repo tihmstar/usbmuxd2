@@ -284,19 +284,21 @@ USBDeviceManager::~USBDeviceManager(){
     if (_usb_hotplug_cb_handle) {
         libusb_hotplug_deregister_callback(_ctx, _usb_hotplug_cb_handle); _usb_hotplug_cb_handle = 0;
     }
-    _reapDevices.kill();
-    _devReaperThread.join();
     if (_children.size()) {
-        debug("waiting for children to die...");
+        debug("waiting for usb children to die...");
         std::unique_lock<std::mutex> ul(_childrenLck);
         while (size_t s = _children.size()) {
+            for (auto c : _children) c->kill();
             uint64_t wevent = _childrenEvent.getNextEvent();
             ul.unlock();
-            debug("Need to kill %zu more children",s);
+            debug("Need to kill %zu more usb children",s);
             _childrenEvent.waitForEvent(wevent);
             ul.lock();
         }
     }
+    _reapDevices.kill();
+    _devReaperThread.join();
+
     stopLoop();
     safeFreeCustom(_ctx, libusb_exit);
 }
@@ -525,9 +527,6 @@ void USBDeviceManager::reaper_runloop(){
         }
         //make device go out of scope so it can die in piece
         dev->deconstruct();
-#ifdef XCODE
-        printf(""); //you can use this to set a breakpoint
-#endif
     }
 }
 
