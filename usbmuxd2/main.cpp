@@ -180,7 +180,7 @@ static void usage(){
     printf("  -X, --force-exit\t\tNotify a running instance to exit even if there are still\n");
     printf("                  \t\tdevices connected (always works) and exit.\n");
     printf("      --debug\t\t\tEnable debug logging\n");
-    printf("      --allow-heartless-wifi\tAllow WIFI devices without heartbeat to be listed\n");
+    printf("      --allow-heartless-wifi\tAllow WIFI devices without heartbeat to be listed (needed for WIFI pairing)\n");
     printf("      --nousb\t\t\tDo not start USBDeviceManager\n");
     printf("      --nowifi\t\t\tDo not start WIFIDeviceManager\n");
     printf("\n");
