@@ -9,6 +9,7 @@
 #include "../Devices/USBDevice.hpp"
 
 #include <unistd.h>
+#include <string.h>
 
 #pragma mark libusb_callback definitions
 int usb_hotplug_cb(libusb_context *ctx, libusb_device *device, libusb_hotplug_event event, void *user_data) noexcept;

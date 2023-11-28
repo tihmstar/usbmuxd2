@@ -350,13 +350,16 @@ void TCP::handle_input(tcphdr* tcp_header, uint8_t* payload, uint32_t payload_le
             } else if (tcp_header->th_flags == TH_RST){
                 info("Connection reset by device, flags: %u sport=%u dport=%u", tcp_header->th_flags,_sPort,_dPort);
                 kill(__LINE__);
+                return;
             }else{
                 warning("unexpected flags=0x%02x",tcp_header->th_flags);
-    #ifdef XCODE
+#ifdef XCODE
             assert(0); //debug this in XCODE
-    #endif
+#endif
             }
         } else if (_connState == CONN_REFUSED) {
+            return;
+        } else if (_connState == CONN_DYING) {
             return;
         } else {
             warning("Data for unexpected connection state: %d",_connState);
@@ -375,6 +378,7 @@ void TCP::handle_input(tcphdr* tcp_header, uint8_t* payload, uint32_t payload_le
             if (_connState != CONN_CONNECTED) return;
             ul.lock();
         }
+        if (_connState != CONN_CONNECTED) return;
         //forward to client without buffering
         ssize_t didSend = send(_pfd.fd, payload, payload_len, 0);
         if(didSend != payload_len){

@@ -181,8 +181,8 @@ static void usage(){
     printf("                  \t\tdevices connected (always works) and exit.\n");
     printf("      --debug\t\t\tEnable debug logging\n");
     printf("      --allow-heartless-wifi\tAllow WIFI devices without heartbeat to be listed (needed for WIFI pairing)\n");
-    printf("      --nousb\t\t\tDo not start USBDeviceManager\n");
-    printf("      --nowifi\t\t\tDo not start WIFIDeviceManager\n");
+    printf("      --no-usb\t\t\tDo not start USBDeviceManager\n");
+    printf("      --no-wifi\t\t\tDo not start WIFIDeviceManager\n");
     printf("\n");
 }
 
@@ -203,8 +203,8 @@ static void parse_opts(int argc, const char **argv){
         
         {"allow-heartless-wifi",    no_argument,        NULL,  0 },
         {"debug",                   no_argument,        NULL,  0 },
-        {"nousb",                   optional_argument,  NULL,  0 },
-        {"nowifi",                  optional_argument,  NULL,  0 },
+        {"no-usb",                   optional_argument,  NULL,  0 },
+        {"no-wifi",                  optional_argument,  NULL,  0 },
         {NULL,                      0,                  NULL,  0 }
     };
     int optindex = 0;
@@ -227,10 +227,10 @@ static void parse_opts(int argc, const char **argv){
                     gConfig->allowHeartlessWifi = true;
                 }else if (curopt == "debug") {
                     gConfig->debugLevel++;
-                }else if (curopt == "nousb") {
+                }else if (curopt == "no-usb") {
                     info("Manually disableing USBDeviceManager");
                     gConfig->enableUSBDeviceManager = (!optarg) ? false : atoi(optarg);
-                }else if (curopt == "nowifi") {
+                }else if (curopt == "no-wifi") {
                     info("Manually disabling WIFIDeviceManager");
                     gConfig->enableWifiDeviceManager = (!optarg) ? false : atoi(optarg);
                 }

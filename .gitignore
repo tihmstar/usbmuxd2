@@ -45,3 +45,6 @@ udev/39-usbmuxd.rules
 config.h.in~
 Build/
 configure~
+xcuserdata
+project.xcworkspace
+xcshareddata

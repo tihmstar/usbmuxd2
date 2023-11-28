@@ -13,6 +13,8 @@
 
 #include <mutex>
 
+#include <string.h>
+
 #pragma mark libusb_callback implementations
 void tx_callback(struct libusb_transfer *xfer) noexcept{
     std::shared_ptr<USBDevice> dev = *(std::shared_ptr<USBDevice> *)xfer->user_data;
@@ -391,18 +393,19 @@ void USBDevice::device_data_input(unsigned char *buffer, uint32_t length){
                 _data_in_event.notifyAll();
             });
             uint16_t txseq = ntohs(mhdr->v2.tx_seq);
-//            debug("----- MUX txseq=%d rxseq=%d -- _muxdev.tx_seq=%d _muxdev.rx_seq=%d",txseq,rxseq,_muxdev.tx_seq,_muxdev.rx_seq);
+//            debug("----- MUX txseq=%d -- _muxdev.tx_seq=%d _muxdev.rx_seq=%d",txseq,_muxdev.tx_seq,_muxdev.rx_seq);
             if ((uint16_t)(_muxdev.rx_seq+1) != txseq) {
-                while ((uint16_t)(_muxdev.rx_seq+1) != txseq) {
+                while ((uint16_t)(_muxdev.rx_seq+1) < txseq || (uint16_t)(_muxdev.rx_seq+1+_rx_xfers.size()) < txseq + _rx_xfers.size()) {
                     uint64_t wevent = _data_in_event.getNextEvent();
                     ul.unlock();
                     _data_in_event.waitForEvent(wevent);
                     ul.lock();
                 }
             }
-#ifdef DEBUG
-            assert((uint16_t)(_muxdev.rx_seq+1) == txseq);
-#endif
+            if ((uint16_t)(_muxdev.rx_seq+1) != txseq){
+                debug("Discarding duplicated MUX packet txseq=%d -- _muxdev.tx_seq=%d _muxdev.rx_seq=%d",txseq,_muxdev.tx_seq,_muxdev.rx_seq);
+                return;
+            }
             _muxdev.rx_seq = txseq;
         }
         

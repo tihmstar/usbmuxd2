@@ -9,12 +9,14 @@
 #define WIFIDevice_hpp
 
 #include "Device.hpp"
-#include <string>
 #include <libgeneral/Manager.hpp>
 #include <libimobiledevice/libimobiledevice.h>
 #include <libimobiledevice/heartbeat.h>
 #include <libimobiledevice/lockdown.h>
 #include <plist/plist.h>
+
+#include <iostream>
+#include <vector>
 
 class WIFIDeviceManager;
 class WIFIDevice : public Device, tihmstar::Manager {
