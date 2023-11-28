@@ -161,6 +161,11 @@ case ${host_os} in
     ;;
 esac
 
+# Check if struct sockaddr has sa_len member
+AC_CHECK_MEMBER([struct sockaddr.sa_len],[
+  AC_DEFINE([HAVE_STRUCT_SOCKADDR_SIN__LEN], 1, [Define to 1 if struct sockaddr.sin_len member exists])
+],[],[#include <netinet/in.h>])
+
 AC_SUBST([UDEV_SUB])
 AC_SUBST([SYSTEMD_SUB])
 

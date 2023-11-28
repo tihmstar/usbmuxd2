@@ -477,22 +477,19 @@ plist_t Muxer::getDevicePlist(std::shared_ptr<Device> dev) noexcept{
             char buf[0x80] = {};
             if (ipaddr.find(":") == std::string::npos){
                 //this is an IPv4 addr
-                ((uint32_t*)buf)[0] = 0x0210;
-                ((uint32_t*)buf)[1] = inet_addr(ipaddr.c_str());
+                struct sockaddr_in *ip = (struct sockaddr_in *)buf;
+#ifdef HAVE_STRUCT_SOCKADDR_SIN__LEN
+                ip->sin_len = sizeof(struct sockaddr_in);
+#endif
+                ip->sin_family = AF_INET;
+                ip->sin_addr.s_addr = inet_addr(ipaddr.c_str());
                 plist_dict_set_item(p_props, "NetworkAddress", plist_new_data(buf, sizeof(buf)));
             }else{
-                //this is an IPv6 addr
-                struct my_sockaddr_in6 { //this is not available on linux
-                    uint8_t         sin6_len;       /* length of this struct(sa_family_t) */
-                    uint8_t         sin6_family;    /* AF_INET6 (sa_family_t) */
-                    uint16_t        sin6_port;      /* Transport layer port # (in_port_t) */
-                    uint32_t        sin6_flowinfo;  /* IP6 flow information */
-                    uint8_t         sin6_addr[16];  /* IP6 address */
-                    uint32_t        sin6_scope_id;  /* scope zone index */
-                };
-                struct my_sockaddr_in6 *ip6 = (struct my_sockaddr_in6 *)buf;
+                struct sockaddr_in6 *ip6 = (struct sockaddr_in6 *)buf;
+#ifdef HAVE_STRUCT_SOCKADDR_SIN__LEN
                 ip6->sin6_len = sizeof(sockaddr_in6);
-                ip6->sin6_family = 0x1E; //AF_INET6 (bsd)
+#endif
+                ip6->sin6_family = AF_INET6;
                 ip6->sin6_scope_id = wifidev->_interfaceIndex;
                 if (!inet_pton(AF_INET6, ipaddr.c_str(), &ip6->sin6_addr)) continue;
                 plist_dict_set_item(p_props, "NetworkAddress", plist_new_data(buf, sizeof(buf)));

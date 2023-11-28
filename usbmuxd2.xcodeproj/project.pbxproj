@@ -411,6 +411,7 @@
 					HAVE_LIBIMOBILEDEVICE,
 					"CUSTOM_LOGGING=\"\\\"log.h\\\"\"",
 					HAVE_WIFI_MDNS,
+					HAVE_STRUCT_SOCKADDR_SIN__LEN,
 				);
 				HEADER_SEARCH_PATHS = (
 					/usr/local/include,
