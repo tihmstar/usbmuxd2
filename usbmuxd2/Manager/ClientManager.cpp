@@ -85,7 +85,7 @@ bool ClientManager::loopEvent(){
     int cfd = 0;
     
     cfd = accept_client();
-
+    if (cfd == -1) return true;
     try {
         handle_client(cfd); //always consumes cfd
     } catch (tihmstar::exception &e) {
@@ -123,7 +123,10 @@ int ClientManager::accept_client(){
             .events = POLLIN
         }
     };
-    retassure((err = poll(pfd,2,-1)) != -1, "[CLIENTMANAGER] poll failed");
+    if ((err = poll(pfd,2,-1)) == -1){
+        retassure(errno == EINTR, "[CLIENTMANAGER] poll failed errno=%d (%s)",errno,strerror(errno));
+        return -1;
+    }
     retassure(!(pfd[1].revents & POLLHUP), "graceful kill requested");
     retassure(pfd[0].revents & POLLIN, "poll returned, but there is no POLLIN event on client");
     retassure((cfd = accept(_listenfd, (struct sockaddr *)&addr, &len))>=0, "accept() failed (%s)", strerror(errno));
