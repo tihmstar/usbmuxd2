@@ -25,6 +25,7 @@ class ClientManager : public tihmstar::Manager{
     
     virtual void stopAction() noexcept override;
     virtual bool loopEvent() override;
+    virtual void afterLoop() noexcept override;
 
     void reaper_runloop();
 

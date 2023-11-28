@@ -94,6 +94,13 @@ bool ClientManager::loopEvent(){
     return true;
 }
 
+void ClientManager::afterLoop() noexcept{
+    if (_listenfd > 0) {
+        int cfd = _listenfd; _listenfd = -1;
+        close(cfd);
+    }
+}
+
 void ClientManager::reaper_runloop(){
     while (true) {
         std::shared_ptr<Client> cli;
