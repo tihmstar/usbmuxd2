@@ -1,0 +1,10 @@
+Package: usbmuxd2
+Version: @DEB_VERSION@
+Architecture: @DEB_ARCH@
+Depends: @libgeneral_debian_dep@ @libusb_debian_dep@ @libplist_debian_dep@ @avahi_debian_dep@ @libimobiledevice_debian_dep@ adduser
+Conflicts: usbmuxd
+Replaces: usbmuxd
+Provides: usbmuxd
+Section: Administration
+Priority: standard
+Description: A socket daemon to multiplex connections from and to iOS devices over USB and WIFI

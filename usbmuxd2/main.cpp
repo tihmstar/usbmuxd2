@@ -167,6 +167,7 @@ static void usage(){
     printf("  -h, --help\t\t\tPrint this message.\n");
     printf("  -d, --daemonize\t\tDo daemonize\n");
     printf("  -l, --logfile=LOGFILE\t\tLog (append) to LOGFILE instead of stderr or syslog.\n");
+    printf("  -p, --no-preflight\t\tDisable lockdownd preflight on new device.\n");
 #ifdef WANT_SYSTEMD
     printf("  -s, --systemd\t\t\tRun in systemd operation mode (implies -z and -f).\n");
 #endif
@@ -191,6 +192,7 @@ static void parse_opts(int argc, const char **argv){
         {"help",                    no_argument,        NULL, 'h'},
         {"daemonize",               no_argument,        NULL, 'd'},
         {"logfile",                 required_argument,  NULL, 'l'},
+        {"no-preflight",            no_argument,        NULL, 'p'},
 #ifdef WANT_SYSTEMD
         {"systemd",                 no_argument,        NULL, 's'},
 #endif
@@ -203,14 +205,14 @@ static void parse_opts(int argc, const char **argv){
         
         {"allow-heartless-wifi",    no_argument,        NULL,  0 },
         {"debug",                   no_argument,        NULL,  0 },
-        {"no-usb",                   optional_argument,  NULL,  0 },
-        {"no-wifi",                  optional_argument,  NULL,  0 },
+        {"no-usb",                  optional_argument,  NULL,  0 },
+        {"no-wifi",                 optional_argument,  NULL,  0 },
         {NULL,                      0,                  NULL,  0 }
     };
     int optindex = 0;
     int opt = 0;
     
-    const char* opts_spec = "hdl:"
+    const char* opts_spec = "hdl:p"
 #ifdef WANT_SYSTEMD
                             "s"
 #endif
@@ -258,6 +260,9 @@ static void parse_opts(int argc, const char **argv){
                 } else {
                     gConfig->useLogfile = 1;
                 }
+                break;
+            case 'p':
+                gConfig->doPreflight = false;
                 break;
             case 'U':
                 gConfig->dropUser = optarg;
@@ -380,7 +385,7 @@ int main(int argc, const char * argv[]) {
     }
 
     if (!gConfig->doPreflight){
-        info("Preflight disabled by config!");
+        info("Preflight disabled by config or commandline!");
     }
     
     //starting

@@ -6,6 +6,9 @@
 //  Copyright © 2019 tihmstar. All rights reserved.
 //
 
+#include <libgeneral/macros.h>
+
+#ifdef HAVE_LIBIMOBILEDEVICE
 #include "WIFIDevice.hpp"
 #include "../Muxer.hpp"
 #include "../sysconf/sysconf.hpp"
@@ -16,7 +19,6 @@
 #   include "../Manager/WIFIDeviceManager-mDNS.hpp"
 #endif //HAVE_AVAHI
 
-#include <libgeneral/macros.h>
 #include <plist/plist.h>
 
 #include <assert.h>
@@ -108,4 +110,4 @@ void WIFIDevice::start_connect(uint16_t dport, std::shared_ptr<Client> cli){
 }
 
 #endif //defined(HAVE_WIFI_AVAHI) || defined(HAVE_WIFI_MDNS)
-
+#endif //HAVE_LIBIMOBILEDEVICE

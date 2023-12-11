@@ -9,6 +9,7 @@
 
 #include <libgeneral/macros.h>
 
+#ifdef HAVE_WIFI_MDNS
 #include "WIFIDeviceManager-mDNS.hpp"
 #include "../Devices/WIFIDevice.hpp"
 #include "../sysconf/sysconf.hpp"
@@ -17,8 +18,6 @@
 #include <netdb.h>
 #include <sys/select.h>
 #include <unistd.h>
-
-#ifdef HAVE_WIFI_MDNS
 
 #pragma mark definitions
 

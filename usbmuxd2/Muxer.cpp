@@ -7,13 +7,16 @@
 
 #include "Muxer.hpp"
 #include "Devices/USBDevice.hpp"
-#include "Devices/WIFIDevice.hpp"
 #include "Manager/USBDeviceManager.hpp"
 #include "Manager/ClientManager.hpp"
 #include "Client.hpp"
 #include "sysconf/preflight.hpp"
 
 #include <libgeneral/macros.h>
+
+#ifdef HAVE_LIBIMOBILEDEVICE
+#   include "Devices/WIFIDevice.hpp"
+#endif //HAVE_LIBIMOBILEDEVICE
 
 #ifdef HAVE_WIFI_AVAHI
 #   include "Manager/WIFIDeviceManager-avahi.hpp"
@@ -41,7 +44,9 @@ Muxer::Muxer(bool doPreflight, bool allowHeartlessWifi)
 Muxer::~Muxer(){
     safeDelete(_climgr);
     safeDelete(_usbdevmgr);
+#if defined(HAVE_WIFI_AVAHI) || defined(HAVE_WIFI_MDNS)
     safeDelete(_wifidevmgr);
+#endif //defined(HAVE_WIFI_AVAHI) || defined(HAVE_WIFI_MDNS)
 }
 
 #pragma mark Managers
@@ -102,8 +107,7 @@ void Muxer::delete_client(int cli_fd) noexcept{
 void Muxer::delete_client(std::shared_ptr<Client> cli) noexcept{
     debug("delete_client %d",cli->_fd);
     _clientsGuard.lockMember();
-    if (_clients.contains(cli)) {
-        _clients.erase(cli);
+    if (_clients.erase(cli)) {
         _clientsGuard.unlockMember();
         cli->kill();
     }else{
@@ -178,12 +182,7 @@ void Muxer::add_device(std::shared_ptr<Device> dev, bool notify) noexcept {
 void Muxer::delete_device(std::shared_ptr<Device> dev) noexcept {
     {
         guardWrite(_devicesGuard);
-        for (auto d : _devices){
-            if (d == dev){
-                _devices.erase(d);
-                break;
-            }
-        }
+        _devices.erase(dev);
     }
     notify_device_remove(dev->_id);
 }
@@ -207,6 +206,7 @@ void Muxer::delete_device(uint8_t bus, uint8_t address) noexcept {
 }
 
 void Muxer::delete_wifi_pairing_device_with_ip(std::vector<std::string> ipaddrs) noexcept{
+#if defined(HAVE_WIFI_AVAHI) || defined(HAVE_WIFI_MDNS)
     guardWrite(_devicesGuard);
     for (auto dev : _devices){
         if (dev->_conntype == Device::MUXCONN_WIFI) {
@@ -220,6 +220,7 @@ void Muxer::delete_wifi_pairing_device_with_ip(std::vector<std::string> ipaddrs)
             }
         }
     }
+#endif //defined(HAVE_WIFI_AVAHI) || defined(HAVE_WIFI_MDNS)
 }
 
 bool Muxer::have_usb_device(uint8_t bus, uint8_t address) noexcept {
@@ -236,6 +237,7 @@ bool Muxer::have_usb_device(uint8_t bus, uint8_t address) noexcept {
 }
 
 bool Muxer::have_wifi_device_with_mac(std::string macaddr) noexcept{
+#if defined(HAVE_WIFI_AVAHI) || defined(HAVE_WIFI_MDNS)
     guardRead(_devicesGuard);
     for (auto dev : _devices){
         if (dev->_conntype == Device::MUXCONN_WIFI) {
@@ -245,10 +247,12 @@ bool Muxer::have_wifi_device_with_mac(std::string macaddr) noexcept{
             }
         }
     }
+#endif //defined(HAVE_WIFI_AVAHI) || defined(HAVE_WIFI_MDNS)
     return false;
 }
 
 bool Muxer::have_wifi_device_with_ip(std::vector<std::string> ipaddrs) noexcept{
+#if defined(HAVE_WIFI_AVAHI) || defined(HAVE_WIFI_MDNS)
     guardRead(_devicesGuard);
     for (auto dev : _devices){
         if (dev->_conntype == Device::MUXCONN_WIFI) {
@@ -260,6 +264,7 @@ bool Muxer::have_wifi_device_with_ip(std::vector<std::string> ipaddrs) noexcept{
             }
         }
     }
+#endif //defined(HAVE_WIFI_AVAHI) || defined(HAVE_WIFI_MDNS)
     return false;
 }
 
@@ -467,6 +472,7 @@ plist_t Muxer::getDevicePlist(std::shared_ptr<Device> dev) noexcept{
         plist_dict_set_item(p_props, "LocationID", plist_new_uint(usbdev->usb_location()));
         plist_dict_set_item(p_props, "ProductID", plist_new_uint(usbdev->getPid()));
     }else if (dev->_conntype == Device::MUXCONN_WIFI){
+#if defined(HAVE_WIFI_AVAHI) || defined(HAVE_WIFI_MDNS)
         std::shared_ptr<WIFIDevice> wifidev = std::static_pointer_cast<WIFIDevice>(dev);
         plist_dict_set_item(p_props, "ConnectionType", plist_new_string("Network"));
         plist_dict_set_item(p_props, "EscapedFullServiceName", plist_new_string(wifidev->_serviceName.c_str()));
@@ -499,6 +505,7 @@ plist_t Muxer::getDevicePlist(std::shared_ptr<Device> dev) noexcept{
         if (wifidev->_interfaceIndex) {
             plist_dict_set_item(p_props, "InterfaceIndex", plist_new_int(wifidev->_interfaceIndex));
         }
+#endif //defined(HAVE_WIFI_AVAHI) || defined(HAVE_WIFI_MDNS)
     }else{
         assert(0); //THIS SHOULD NOT HAPPEN!!!
     }

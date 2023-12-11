@@ -48,3 +48,7 @@ configure~
 xcuserdata
 project.xcworkspace
 xcshareddata
+cache_wrkdir
+*buildroot*
+*.deb
+*.control

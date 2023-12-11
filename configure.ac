@@ -38,12 +38,34 @@ CXXFLAGS+=' -DCUSTOM_LOGGING="\"log.h\""'
 
 CXXFLAGS+=" -std=c++20"
 
+LIBGENERAL_MINVERS_STR="217"
+LIBUSB_MINVERS_STR="1.0.9"
+LIBPLIST_MINVERS_STR="2.2.0"
+AVAHI_MINVERS_STR="0.7"
+LIBIMOBILEDEVICE_MINVERS_STR="1.3.0"
 
-PKG_CHECK_MODULES(libgeneral, libgeneral >= 39)
-PKG_CHECK_MODULES(libusb, libusb-1.0 >= 1.0.9)
-PKG_CHECK_MODULES(libplist, libplist-2.0 >= 2.2.0)
-PKG_CHECK_MODULES(libimobiledevice, libimobiledevice-1.0 >= 1.3.0, have_limd=yes, have_limd=no)
-PKG_CHECK_MODULES(avahi, avahi-client >= 0.7, have_avahi=yes, have_avahi=no)
+LIBGENERAL_REQUIRES_STR="libgeneral >= $LIBGENERAL_MINVERS_STR"
+LIBUSB_REQUIRES_STR="libusb-1.0 >= $LIBUSB_MINVERS_STR"
+LIBPLIST_REQUIRES_STR="libplist-2.0 >= $LIBPLIST_MINVERS_STR"
+AVAHI_REQUIRES_STR="avahi-client >= $AVAHI_MINVERS_STR"
+LIBIMOBILEDEVICE_REQUIRES_STR="libimobiledevice-1.0 >= $LIBIMOBILEDEVICE_MINVERS_STR"
+
+PKG_CHECK_MODULES(libgeneral, $LIBGENERAL_REQUIRES_STR)
+PKG_CHECK_MODULES(libusb, $LIBUSB_REQUIRES_STR)
+PKG_CHECK_MODULES(libplist, $LIBPLIST_REQUIRES_STR)
+PKG_CHECK_MODULES(avahi, $AVAHI_REQUIRES_STR, have_avahi=yes, have_avahi=no)
+PKG_CHECK_MODULES(libimobiledevice, $LIBIMOBILEDEVICE_REQUIRES_STR, have_limd=yes, have_limd=no)
+
+#Debian Dependencies
+LIBGENERAL_DEBIAN_DEP_STR="libgeneral0 (>= 0.$LIBGENERAL_MINVERS_STR),"
+LIBUSB_DEBIAN_DEP_STR="libusb-1.0-0 (>= 2:$LIBUSB_MINVERS_STR),"
+LIBPLIST_DEBIAN_DEP_STR="libplist4 (>= $LIBPLIST_MINVERS_STR),"
+AVAHI_DEBIAN_DEP_STR="avahi-client (>= $AVAHI_MINVERS_STR),"
+LIBIMOBILEDEVICE_DEBIAN_DEP_STR="libimobiledevice-1.0 (>= $LIBIMOBILEDEVICE_MINVERS_STR)"
+
+AC_SUBST([libgeneral_debian_dep], [$LIBGENERAL_DEBIAN_DEP_STR])
+AC_SUBST([libusb_debian_dep], [$LIBUSB_DEBIAN_DEP_STR])
+AC_SUBST([libplist_debian_dep], [$LIBPLIST_DEBIAN_DEP_STR])
 
 AC_ARG_WITH([libimobiledevice],
             [AS_HELP_STRING([--without-libimobiledevice],
@@ -78,9 +100,13 @@ if test "x$with_limd" == "xyes"; then
     AC_SUBST(libimobiledevice_CFLAGS)
     AC_SUBST(libimobiledevice_LIBS)
   else
+    LIBIMOBILEDEVICE_DEBIAN_DEP_STR=""
     echo "*** Note: libimobiledevice support has been disabled ***"
   fi
+else
+  LIBIMOBILEDEVICE_DEBIAN_DEP_STR=""
 fi
+AC_SUBST([libimobiledevice_debian_dep], [$LIBIMOBILEDEVICE_DEBIAN_DEP_STR])
 
 if test "x$with_wifi" == "xyes"; then
   if test "x$have_avahi" = "xyes"; then
@@ -88,25 +114,32 @@ if test "x$with_wifi" == "xyes"; then
     AC_SUBST(avahi_CFLAGS)
     AC_SUBST(avahi_LIBS)
   elif test "x$have_mdns" = "xyes"; then
+    AVAHI_DEBIAN_DEP_STR=""
     AC_DEFINE(HAVE_WIFI_MDNS, 1, [Define if you have mDNS])
   else
     AC_MSG_ERROR([wifi support requested but no wifi backend could not be found])
   fi
 else
+  AVAHI_DEBIAN_DEP_STR=""
   echo "*** Note: wifi support has been disabled ***"
 fi
+AC_SUBST([avahi_debian_dep], [$AVAHI_DEBIAN_DEP_STR])
 
 AC_ARG_WITH([udevrulesdir],
             AS_HELP_STRING([--with-udevrulesdir=DIR],
             [Directory for udev rules]),
-            [],
+            [with_udevrulesdir=$withval],
             [with_udevrulesdir=auto])
 if test "x$with_udevrulesdir" = "xauto"; then
   udevdir=$($PKG_CONFIG --variable=udevdir udev)
   if test "x$udevdir" != "x"; then
     with_udevrulesdir=$udevdir"/rules.d"
   else
-    with_udevrulesdir=$prefix/lib/udev/rules.d
+    if test "x$prefix" != "xNONE"; then
+      with_udevrulesdir=$prefix/lib/udev/rules.d
+    else
+      with_udevrulesdir=/lib/udev/rules.d
+    fi
   fi
 fi
 
@@ -120,12 +153,19 @@ AC_ARG_WITH([systemdsystemunitdir],
             [AS_HELP_STRING([--with-systemdsystemunitdir=DIR],
             [directory for systemd service files])],
             [with_systemdsystemunitdir=$withval],
-            [with_systemdsystemunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)])
+            [with_systemdsystemunitdir=auto])
 
-if test "x$with_systemdsystemunitdir" != xno; then
+if test "x$with_systemd" != xno; then
+  if test "x$with_systemdsystemunitdir" = "xauto"; then
+    systemdsystemunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
+    if test "x$systemdsystemunitdir" != "x"; then
+      with_systemdsystemunitdir="${systemdsystemunitdir}"
+    else
+      with_systemdsystemunitdir="/lib/systemd/system"
+    fi
+  fi
   AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])
 fi
-AM_CONDITIONAL(WANT_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_systemdsystemunitdir" != xno -a "x$with_systemd" = "xyes" ])
 
 if test "x$with_systemd" = xyes; then
   udev_activation_rule="ENV{SYSTEMD_WANTS}=\"usbmuxd.service\""
@@ -161,6 +201,9 @@ case ${host_os} in
     ;;
 esac
 
+AM_CONDITIONAL(WANT_SYSTEMD, [test "x$activation_method" == "xsystemd" ])
+
+
 # Check if struct sockaddr has sa_len member
 AC_CHECK_MEMBER([struct sockaddr.sa_len],[
   AC_DEFINE([HAVE_STRUCT_SOCKADDR_SIN__LEN], 1, [Define to 1 if struct sockaddr.sin_len member exists])
@@ -169,10 +212,17 @@ AC_CHECK_MEMBER([struct sockaddr.sa_len],[
 AC_SUBST([UDEV_SUB])
 AC_SUBST([SYSTEMD_SUB])
 
+AC_SUBST([DEB_VERSION], [0.${VERSION_COMMIT_COUNT}-git-${VERSION_COMMIT_SHA}])
+
+if test "x${host_cpu}" == "xx86_64"; then
+  AC_SUBST([DEB_ARCH], [amd64])
+fi
+
 AC_CONFIG_FILES([Makefile
                  udev/Makefile
                  systemd/Makefile
-                 usbmuxd2/Makefile])
+                 usbmuxd2/Makefile
+                 debian/usbmuxd2.control])
 AC_OUTPUT
 
 echo "

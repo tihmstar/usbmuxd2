@@ -345,7 +345,7 @@ void USBDevice::usb_send(void *buf, size_t length){
     }
     retassure((ret = libusb_submit_transfer(xfer)) >=0, "Failed to submit TX transfer %p len %zu to device %d-%d: %d", buf, length, _bus, _address, ret);
     xfer = NULL;
-    if (length % _wMaxPacketSize == 0 && length > _wMaxPacketSize) {
+    if (length % _wMaxPacketSize == 0 && length >= _wMaxPacketSize) {
         debug("Send ZLP");
         // Send Zero Length Packet
         assure(buf = malloc(1));

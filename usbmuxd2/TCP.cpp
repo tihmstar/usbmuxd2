@@ -231,7 +231,7 @@ cnt_label:
     // Update TCP states
     _stx.acked = _stx.ack;
     _stx.seq += len;
-    debug("Sending tcp payload packet: sport=%u dport=%u seq=%u seqAcked=%u ack=%u flags=0x%x len=%zu rwindow=%u[%u] unacked=%d",
+    debug("Sending tcp payload packet: sport=%u dport=%u seq=%u seqAcked=%u ack=%u flags=0x%x len=%zu rwindow=%u[%u] unacked=%llu",
           htons(tcp_header.th_sport), htons(tcp_header.th_dport), htonl(tcp_header.th_seq), _stx.seqAcked, htonl(tcp_header.th_ack),
           TH_ACK, len, _stx.inWin, _stx.inWin >> 8, unacked);
 
@@ -278,7 +278,7 @@ void TCP::kill(int reason) noexcept{
     if (reason) {
         debug("killing TCP connection sport=%d (reason=%d)",_sPort, reason);
     }else{
-        debug("killing TCP connection sport=%d (no reason=%d)",_sPort);
+        debug("killing TCP connection sport=%d (no reason)",_sPort);
     }
     _dev->closeConnection(_sPort);
 }
@@ -384,7 +384,7 @@ void TCP::handle_input(tcphdr* tcp_header, uint8_t* payload, uint32_t payload_le
         if(didSend != payload_len){
             //client died, but don't throw, since it wasn't the devices fault!
             //terminate TCP instead
-            error("Failed to send payload to client with didSend=%lld payload_len=%lld errno=%d (%s)",didSend,payload_len,errno,strerror(errno));
+            error("Failed to send payload to client with didSend=%zd payload_len=%u errno=%d (%s)",didSend,payload_len,errno,strerror(errno));
             kill(__LINE__);
         }
         _stx.pktForwarded += payload_len;

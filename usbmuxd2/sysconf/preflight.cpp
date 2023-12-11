@@ -80,7 +80,6 @@ error:
 }
 
 void preflight_device(const char *serial, int id){
-    std::string host_id;
     int version_major = 0;
     lockdownd_error_t lret = LOCKDOWN_E_SUCCESS;
     idevice_error_t iret = IDEVICE_E_SUCCESS;
@@ -144,26 +143,26 @@ void preflight_device(const char *serial, int id){
     }
 
     {
-        const char *str = NULL;
-        uint64_t strlen = 0;
+        char *hostid_str = NULL;
+        cleanup([&]{
+            safeFree(hostid_str);
+        });
         plist_t p_hostid = NULL;
 
         retassure(p_hostid = plist_dict_get_item(p_pairingRecord, "HostID"), "Failed to get HostID from pairing record");
+        retassure((plist_get_string_val(p_hostid, &hostid_str),hostid_str), "Failed to get str ptr from HostID");
 
-        retassure(str = plist_get_string_ptr(p_hostid, &strlen), "Failed to get str ptr from HostID");
-        host_id = std::string(str,strlen);
+        if (!(lret = lockdownd_start_session(lockdown, hostid_str, NULL, NULL))){
+            info("%s: Finished preflight on device %s", __func__, serial);
+            return;
+        }
     }
 
-    if (!(lret = lockdownd_start_session(lockdown, host_id.c_str(), NULL, NULL))){
-        info("%s: Finished preflight on device %s", __func__, serial);
-        return;
-    }
     error("%s: StartSession failed on device %s, lockdown error %d", __func__, serial, lret);
 
     if (lret == LOCKDOWN_E_SSL_ERROR) {
         error("%s: The stored pair record for device %s is invalid. Removing.", __func__, serial);
         sysconf_remove_device_record(serial);
-        host_id.erase();
     }
 
 pairing_required:
