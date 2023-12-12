@@ -32,7 +32,17 @@
 static std::map<std::string,std::string> gKnownMacAddrs;
 static std::mutex gKnownMacAddrsLck;
 
-constexpr const char *sysconf_get_config_dir(){
+const char *sysconf_get_config_dir(){
+    static bool didCheckConfigEnv = false;
+    static const char *overwriteConfigDir = NULL;
+    
+    if (!didCheckConfigEnv){
+        overwriteConfigDir = getenv("USBMUXD_SYSCONF_DIR");
+        didCheckConfigEnv = true;
+    }
+    
+    if (overwriteConfigDir) return overwriteConfigDir;
+    
     return BASE_CONFIG_DIR "/" CONFIG_DIR;
 }
 
@@ -82,7 +92,7 @@ static void mkdir_with_parents(const char *dir, int mode){
 
 static void sysconf_create_config_dir(void){
     struct stat st{};
-    constexpr const char *config_path = sysconf_get_config_dir();
+    const char *config_path = sysconf_get_config_dir();
     
     if (stat(config_path, &st) != 0) {
         mkdir_with_parents(config_path, 0755);
@@ -109,7 +119,7 @@ static char *sysconf_generate_system_buid(){
 }
 
 std::string get_device_record_path(const char *udid){
-    constexpr const char *config_path = sysconf_get_config_dir();
+    const char *config_path = sysconf_get_config_dir();
     sysconf_create_config_dir();
     
     std::string ret = config_path;
@@ -122,7 +132,7 @@ std::string get_device_record_path(const char *udid){
 
 static void sysconf_load_known_macaddrs(){
     std::unique_lock<std::mutex> ul(gKnownMacAddrsLck);
-    constexpr const char *config_path = sysconf_get_config_dir();
+    const char *config_path = sysconf_get_config_dir();
 
     sysconf_create_config_dir();
 
@@ -295,7 +305,7 @@ std::string sysconf_udid_for_macaddr(std::string macaddr){
 }
 
 void sysconf_fix_permissions(int uid, int gid){
-    constexpr const char *config_path = sysconf_get_config_dir();
+    const char *config_path = sysconf_get_config_dir();
 
     sysconf_create_config_dir();
 

@@ -411,7 +411,7 @@ void USBDeviceManager::device_add(libusb_device *dev){
             }
         }
         debug("Setting configuration for device %d-%d, from %d to %d", bus, address, current_config, devdesc.bNumConfigurations);
-        retassure(!(err = libusb_set_configuration(handle, devdesc.bNumConfigurations)), "Could not set configuration %d for device %d-%d: %d", devdesc.bNumConfigurations, bus, address, err);
+        retassure(!(err = libusb_set_configuration(handle, devdesc.bNumConfigurations)), "Could not set configuration %d for device %d-%d: 0x%08x", devdesc.bNumConfigurations, bus, address, err);
     }
     
     retassure(!(err = libusb_get_active_config_descriptor(dev, &config)), "Could not get configuration descriptor for device %d-%d: %d", bus, address, err);
